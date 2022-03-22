@@ -1,3 +1,7 @@
 /
-/hi/
-/test/
+/profile
+/disp
+/disp/patient/find
+/disp/patient/visit
+/disp/patient/{id}
+/test

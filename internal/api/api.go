@@ -1,25 +1,40 @@
 package api
 
 import (
-	"log"
+	"encoding/json"
 	"pmain2/pkg/logger"
 )
 
 var (
-	lI *log.Logger
-	lR *log.Logger
+	INFO, _  = logger.New("api", logger.INFO)
+	ERROR, _ = logger.New("api", logger.ERROR)
+
+	AnswerOk   = Success{Success: true}
+	AnswerFail = Success{Success: false}
 )
 
-func INFO(text string) {
-	if lI == nil {
-		lI, _ = logger.New("api", logger.INFO)
-	}
-	lI.Println(text)
+type Api struct {
+	User    *userApi
+	Patient *patientApi
+	Spr     *sprApi
 }
 
-func ERROR(text string) {
-	if lR == nil {
-		lR, _ = logger.New("api", logger.ERROR)
+func Init() *Api {
+	return &Api{
+		User:    userApiInit(),
+		Patient: patientApiInit(),
+		Spr:     sprApiInit(),
 	}
-	lR.Println(text)
+}
+
+type Success struct {
+	Success bool `json:"success"`
+}
+
+func (s Success) Marshal() string {
+	marshal, err := json.Marshal(s)
+	if err != nil {
+		return ""
+	}
+	return string(marshal)
 }

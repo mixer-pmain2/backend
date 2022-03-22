@@ -1,6 +1,9 @@
 // const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = {
+    entry: [
+      'babel-polyfill', 'src/index.js'
+    ],
     module: {
         rules: [
             {

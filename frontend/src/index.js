@@ -9,3 +9,6 @@ ReactDOM.render(
 );
 
 reportWebVitals();
+
+require("babel-core/register");
+require("babel-polyfill");

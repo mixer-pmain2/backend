@@ -1,8 +1,10 @@
 package config
 
 import (
+	"errors"
 	"github.com/joho/godotenv"
 	"os"
+	"pmain2/internal/apperror"
 )
 
 type Config struct {
@@ -17,7 +19,11 @@ type Config struct {
 
 func Create() (*Config, error) {
 	cmd, _ := os.Getwd()
-	err := godotenv.Load(cmd + "\\.env")
+	path := cmd + "\\.env"
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return nil, apperror.ErrConfigNotFoundFile
+	}
+	err := godotenv.Load(path)
 	if err != nil {
 		return nil, err
 	}

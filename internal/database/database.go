@@ -3,7 +3,10 @@ package database
 import (
 	"database/sql"
 	"fmt"
+
 	_ "github.com/nakagami/firebirdsql"
+
+	"pmain2/internal/apperror"
 	"pmain2/internal/config"
 )
 
@@ -24,11 +27,11 @@ func Connect() (*DBase, error) {
 	dsn := fmt.Sprintf("%s:%s@%s:%s/%s?encoding=WIN1251", conf.DbUser, conf.DbPassword, conf.DbHost, conf.DbPort, conf.DbName)
 	conn, err := sql.Open("firebirdsql", dsn)
 	if err != nil {
-		return nil, err
+		return nil, apperror.ErrDataBaseConnect
 	}
 	return &DBase{
 		DB: conn,
-	}, err
+	}, nil
 }
 
 func (db *DBase) Close() error {

@@ -4,28 +4,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"pmain2/internal/api"
 	"pmain2/internal/controller"
 	"pmain2/pkg/logger"
 )
 
 var (
-	lI *log.Logger
-	lR *log.Logger
+	INFO, _  = logger.New("middleware", logger.INFO)
+	ERROR, _ = logger.New("middleware", logger.ERROR)
 )
-
-func INFO(text string) {
-	if lI == nil {
-		lI, _ = logger.New("middleware", logger.INFO)
-	}
-	lI.Println(text)
-}
-
-func ERROR(text string) {
-	if lR == nil {
-		lR, _ = logger.New("middleware", logger.ERROR)
-	}
-	lR.Println(text)
-}
 
 func BasicAuth(h http.Handler) http.Handler {
 
@@ -36,8 +24,8 @@ func BasicAuth(h http.Handler) http.Handler {
 			c := controller.Init()
 			isAuth, err := c.User.IsAuth(username, password)
 			if err != nil {
-				http.Error(w, "Unauthorized", http.StatusTeapot)
-				controller.ERROR(err.Error())
+				http.Error(w, err.Error(), http.StatusTeapot)
+				ERROR.Println(err.Error())
 				return
 			}
 			if isAuth {
@@ -53,17 +41,30 @@ func BasicAuth(h http.Handler) http.Handler {
 
 func Logging(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		INFO(fmt.Sprint(r.URL))
+		api.INFO.Println(fmt.Sprint(r.URL))
 		log.Println(r.URL)
 		h.ServeHTTP(w, r)
 	})
 }
 
-func CorsDisable(h http.Handler) http.Handler {
+func CORS(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Auth-Token, Origin")
+		w.Header().Set("Access-Control-Allow-Methods", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		} else {
+			h.ServeHTTP(w, r)
+		}
+	})
+}
+
+func JsonHeader(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		h.ServeHTTP(w, r)
 	})
 }
