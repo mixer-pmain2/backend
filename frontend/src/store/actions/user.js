@@ -24,7 +24,7 @@ export const logout = () => dispatch => {
 
 export const checkUser = ({token}) => dispatch => {
     setBasic(token)
-    dispatch(userReducer.setToken({token}))
+    return dispatch(userReducer.setToken({token}))
 }
 
 export const getPrava = (payload) => dispatch => {

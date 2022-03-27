@@ -23,7 +23,7 @@ type PodrDict struct {
 func (m *SprModel) GetPodr() (*map[int]string, error) {
 	sql := fmt.Sprintf(`SELECT MASKA1, NA_ME 
 FROM SPR_PRAVA svn 
-WHERE KOD1 = 1 AND MASKA1 > 0`)
+WHERE KOD1 = 1 AND MASKA1 > 0 and visible = 1`)
 	rows, err := m.DB.Query(sql)
 	if err != nil {
 		return nil, err
@@ -47,22 +47,24 @@ WHERE KOD1 = 1 AND MASKA1 > 0`)
 }
 
 type PravaDict struct {
+	Unit int    `json:"unit"`
 	Code int    `json:"code"`
 	Name string `json:"name"`
 }
 
-func (m *SprModel) GetPrava() (*map[int]string, error) {
+func (m *SprModel) GetPrava() (*[]PravaDict, error) {
 	sql := fmt.Sprintf(`SELECT MASKA1, MASKA2, NA_ME 
 FROM SPR_PRAVA sp  
-WHERE KOD1 = 2`)
+WHERE KOD1 = 2 and visible = 1
+order by maska1, maska2`)
 	rows, err := m.DB.Query(sql)
 	if err != nil {
 		return nil, err
 	}
-	var data = make(map[int]string, 32)
+	var data = make([]PravaDict, 0)
 	for rows.Next() {
 		row := PravaDict{}
-		err = rows.Scan(&row.Code, &row.Name)
+		err = rows.Scan(&row.Unit, &row.Code, &row.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -71,8 +73,7 @@ WHERE KOD1 = 2`)
 		if err != nil {
 			return nil, err
 		}
-		//data = append(data, )
-		data[row.Code] = row.Name
+		data = append(data, row)
 	}
 	return &data, nil
 }

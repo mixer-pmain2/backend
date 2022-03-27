@@ -29,7 +29,7 @@ WHERE PATIENT_ID = %s`, pageSize, skip, patientId)
 	for rows.Next() {
 		v := Visit{}
 		err = rows.Scan(&v.Id, &v.PatientId,
-			&v.Date, &v.DoctId,
+			&v.Date, &v.DockId,
 			&v.Diagnose, &v.Type,
 			&v.Pord, &v.Home)
 		if err != nil {

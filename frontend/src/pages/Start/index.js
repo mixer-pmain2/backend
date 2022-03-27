@@ -10,46 +10,46 @@ import {linkDict} from "../../routes";
 import {useNavigate} from "react-router-dom";
 import * as appActions from "../../store/actions/application";
 
-const podrList = [
+const unitList = [
     {
         title: "Взрослая психиатрия",
         img: require("../../assets/images/295067-3f51b5.svg"),
-        podr: 1
+        unit: 1
     },
     {
         title: "Психотерапия",
         img: require("../../assets/images/295067-3f51b5.svg"),
-        podr: 2
+        unit: 2
     },
     {
         title: "Специалисты",
         img: require("../../assets/images/295067-3f51b5.svg"),
-        podr: 1024
+        unit: 1024
     },
     {
         title: "Суицидология",
         img: require("../../assets/images/295067-3f51b5.svg"),
-        podr: 4
+        unit: 4
     },
     {
         title: "ОИЛС",
         img: require("../../assets/images/295067-3f51b5.svg"),
-        podr: 8
+        unit: 8
     },
     {
         title: "Детский диспансер",
         img: require("../../assets/images/2025726-3f51b5.svg"),
-        podr: 16
+        unit: 16
     },
     {
         title: "Подростковая психиатрия",
         img: require("../../assets/images/295067-3f51b5.svg"),
-        podr: 16777216
+        unit: 16777216
     },
     {
         title: "Детская консультация",
         img: require("../../assets/images/295067-3f51b5.svg"),
-        podr: 33554432
+        unit: 33554432
     }
 ]
 
@@ -57,24 +57,27 @@ const StartPage = ({dispatch, user, application}) => {
     const navigate = useNavigate()
 
     const initUser = useCallback(() => {
-        dispatch(userActions.getPrava({id: user?.id}))
-        dispatch(appActions.getSprPodr())
-    }, [])
+        if (user?.id) {
+            dispatch(userActions.getPrava({id: user?.id}))
+            dispatch(appActions.getSprPodr())
+            dispatch(appActions.getSprPrava())
+        }
+    }, [user?.id])
 
     useEffect(() => {
         initUser()
-    }, [])
+    }, [user?.id])
 
-    const handleSelectPodr = (podr) => {
-        dispatch(userActions.setCurrentPodr(podr))
+    const handleSelectUnit = (unit) => {
+        dispatch(userActions.setCurrentPodr(unit))
         navigate(linkDict.findPatient)
     }
 
     return <Layout>
-        <div className="row">
-            {podrList.map((v, i) => <div key={i} className="col-sm-3 mb-4">
-                <Card title={v.title} img={v.img} onClick={_ => handleSelectPodr(v.podr)}/>
-            </div>)}
+        <div className="row d-flex justify-content-center">
+            {unitList.map((v, i) =>
+                <Card key={i} title={v.title} img={v.img} onClick={_ => handleSelectUnit(v.unit)}/>
+            )}
 
         </div>
     </Layout>

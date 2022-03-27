@@ -6,6 +6,7 @@ var (
 	ErrDataBaseConnect    = NewAppError(nil, "Connection error", "DB-000001")
 	ErrDataNotFound       = NewAppError(nil, "Not found", "MDL-000001")
 	ErrConfigNotFoundFile = NewAppError(nil, "Not found config file", "CFG-000001")
+	ErrCacheKeyNotFound   = NewAppError(nil, "Key not found in cache", "CCH-000001")
 )
 
 type AppError struct {

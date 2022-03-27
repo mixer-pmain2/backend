@@ -4,15 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-
 	"pmain2/internal/api"
 	"pmain2/internal/controller"
 	"pmain2/pkg/logger"
 )
 
 var (
-	INFO, _  = logger.New("middleware", logger.INFO)
-	ERROR, _ = logger.New("middleware", logger.ERROR)
+	INFO, _  = logger.New("app", logger.INFO)
+	ERROR, _ = logger.New("app", logger.ERROR)
 )
 
 func BasicAuth(h http.Handler) http.Handler {
@@ -23,8 +22,9 @@ func BasicAuth(h http.Handler) http.Handler {
 		if ok {
 			c := controller.Init()
 			isAuth, err := c.User.IsAuth(username, password)
+			INFO.Println("BasicAuth, ok=", isAuth, " err=", err)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusTeapot)
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				ERROR.Println(err.Error())
 				return
 			}

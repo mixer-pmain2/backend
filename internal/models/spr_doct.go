@@ -89,7 +89,10 @@ func (m *SprDoctModel) UserAuth(login, password string) (bool, error) {
 
 func (m *SprDoctModel) GetPrava(id int) (*map[int]int, error) {
 	data := make(map[int]int, 0)
-	sql := fmt.Sprintf("SELECT PODR, SUM(PRAVA)  FROM DOCK_PRAVA dp WHERE dp.KOD_DOCT=%v group by podr", id)
+	sql := fmt.Sprintf(`SELECT PODR, SUM(PRAVA) 
+ FROM DOCK_PRAVA dp WHERE dp.KOD_DOCT=%v
+ and 'NOW' BETWEEN DATE_N AND DATE_E 
+ group by podr`, id)
 	INFO.Println(sql)
 	rows, err := m.Db.Query(sql)
 	if err != nil {

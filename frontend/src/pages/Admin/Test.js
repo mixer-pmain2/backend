@@ -3,14 +3,13 @@ import {connect} from "react-redux";
 
 import * as appActions from "../../store/actions/application"
 
+import {SideLoading} from "../../components/Loading";
 import Notify, {notifyType} from "../../components/Notify";
 
-import {SideLoading} from "../../components/Loading";
-import Layout from "../Layout";
 
-const TestPage = ({dispatch}) => {
-    const [isLoading, setIsLoading] = useState(true)
-    return <Layout>
+const Test = ({dispatch}) => {
+    const [isLoading, setIsLoading] = useState(false)
+    return <div>
         <div>
             <button onClick={_ => Notify(notifyType.INFO, "info")()}>info</button>
             <button onClick={_ => Notify(notifyType.SUCCESS, "success")()}>success</button>
@@ -27,7 +26,7 @@ const TestPage = ({dispatch}) => {
             <button onClick={_ => dispatch(appActions.disableLoading())}>off</button>
             <SideLoading isLoading={isLoading}/>
         </div>
-    </Layout>
+    </div>
 }
 
-export default connect(state => ({}))(TestPage)
+export default Test

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"pmain2/internal/apperror"
 	"pmain2/internal/database"
 	"pmain2/internal/models"
 )
@@ -19,7 +20,7 @@ func (u *user) IsAuth(login, password string) (bool, error) {
 	conn, err := database.Connect()
 	if err != nil {
 		ERROR.Println(err.Error())
-		return false, err
+		return false, apperror.ErrDataBaseConnect
 	}
 	model := models.SprDoctModel{Db: conn.DB}
 	ok, err := model.UserAuth(login, password)

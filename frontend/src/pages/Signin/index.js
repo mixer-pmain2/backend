@@ -2,9 +2,11 @@ import React from "react";
 import {connect} from "react-redux";
 
 import * as userAction from "../../store/actions/user"
-import Layout from "../Layout";
+import {useNavigate} from "react-router-dom";
+import {linkDict} from "../../routes";
 
 const SignInPage = ({dispatch}) => {
+    const navigate = useNavigate()
 
     const handleSubmit = (e) => {
         e.preventDefault()
@@ -13,6 +15,11 @@ const SignInPage = ({dispatch}) => {
             username: username.value,
             password: password.value
         }))
+            .then(res => {
+                if (res?.id) {
+                    navigate(linkDict.start)
+                }
+            })
     }
 
     return <div style={{marginTop: 20}}>

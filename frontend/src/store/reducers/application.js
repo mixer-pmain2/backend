@@ -31,7 +31,18 @@ export const applicationStore = createSlice({
                 ...state,
                 spr: {
                     ...state.spr,
-                    podr: action.payload
+                    unit: action.payload
+                }
+            }
+            saveToStore(state, storeName)
+            return state
+        },
+        setSprPrava: (state, action) => {
+            state = {
+                ...state,
+                spr: {
+                    ...state.spr,
+                    access: action.payload
                 }
             }
             saveToStore(state, storeName)
@@ -40,5 +51,5 @@ export const applicationStore = createSlice({
     }
 })
 
-export const {loadingEnable, loadingDisable, setSprPodr} = applicationStore.actions
+export const {loadingEnable, loadingDisable, setSprPodr, setSprPrava} = applicationStore.actions
 export default applicationStore.reducer

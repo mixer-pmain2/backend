@@ -12,3 +12,8 @@ export const findByID = ({id}) => {
     const url = API + `/patient/${id}/`
     return request("GET", url, {}, {})
 }
+
+export const findUchet = ({id}) => {
+    const url = API + `/patient/${id}/uchet/`
+    return request("GET", url, {}, {})
+}

@@ -1,15 +1,18 @@
 import React from "react";
 import {connect} from "react-redux";
-import {useNavigate} from "react-router-dom";
-import {linkDict} from "../routes";
 
-const AuthRequire = ({children, podr, dispatch, user}) => {
-    const navigate = useNavigate()
+import Layout from "../pages/Layout";
+import SignInPage from "../pages/Signin";
+
+const AuthRequire = (props) => {
+    const {children, dispatch, user} = props
 
     console.log("middleware Auth")
 
     if (!user.isAuth) {
-        // navigate(linkDict.signin)
+        return <Layout>
+            <SignInPage/>
+        </Layout>
     }
 
     return <>{children}</>

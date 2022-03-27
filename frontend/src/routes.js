@@ -1,16 +1,19 @@
 import React from "react";
 import StartPage from "./pages/Start";
-import FoundPatient from "./pages/Patient/Found";
-import VisitPage from "./pages/Patient/Ambulance/Visit/index";
+import VisitPage from "./pages/Patient/Dispanser/modules/Visit/index";
 
 
-import TestPage from "./pages/Test";
 import GetPatient from "./pages/Patient";
 import ProfilePage from "./pages/Profile";
 import middlewareAuthRequire from "./middleware/authRequier";
 import NewMiddleWare from "./middleware";
 import middlewareAccessRequire from "./middleware/accessRequier";
-import SignInPageState, {SignInLayoutPage} from "./pages/Signin";
+import SignInPageState from "./pages/Signin";
+import AdminPage from "./pages/Admin";
+
+import * as access from "./configs/access";
+import Page404 from "./pages/ErrorPage/404";
+import FindPatient from "./pages/Patient/Find";
 
 export const linkDict = {
     start: "/",
@@ -23,18 +26,19 @@ export const linkDict = {
     findPatient: "/patient/find",
     dispVisit: "/disp/patient/visit",
 
-    test: "/test"
+    admin: "/admin",
 }
 
 const main = NewMiddleWare()
 main.add(middlewareAuthRequire)
 
 const disp = NewMiddleWare()
+disp.add(middlewareAccessRequire, {access: access.accessDispPage})
 disp.add(middlewareAuthRequire)
-const accessDisp = [
-    {podr: 1, prava: 5}
-]
-disp.add(middlewareAccessRequire, {access: accessDisp})
+
+const admin = NewMiddleWare()
+admin.add(middlewareAuthRequire)
+admin.add(middlewareAccessRequire, {access: access.accessAdminPage})
 
 
 const routes = [
@@ -52,7 +56,7 @@ const routes = [
     },
     {
         path: linkDict.findPatient,
-        element: disp.middleware(<FoundPatient/>)
+        element: disp.middleware(<FindPatient/>)
     },
     {
         path: linkDict.dispVisit,
@@ -65,12 +69,12 @@ const routes = [
 
 
     {
-        path: linkDict.test,
-        element: disp.middleware(<TestPage/>)
+        path: linkDict.admin,
+        element: admin.middleware(<AdminPage/>)
     },
     {
         path: "*",
-        element: disp.middleware(<StartPage/>)
+        element: <Page404/>
     }
 ]
 export default routes

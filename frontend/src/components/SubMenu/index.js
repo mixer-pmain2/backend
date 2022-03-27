@@ -1,14 +1,18 @@
 import React from "react";
 
 
-const SubMenu = ({tabs, onChange, curTab}) => {
-    return <ul className="nav nav-tabs">
+const SubMenu = ({tabs, onChange, curTab, style}) => {
+    return <ul className="nav nav-tabs" style={{...style}}>
         {
-            tabs.map((v, i) => <li className="nav-item" key={i} onClick={_ => onChange(v)}>
-                <a className={`nav-link ${curTab === v && "active"}`}
-                   aria-current="page"
-                   href="#"
-                >{v}</a>
+            tabs.map((v, i) => <li className="nav-item" key={i}>
+                <a
+                    className={`nav-link ${curTab === v.id && "active"}`}
+                    aria-current="page"
+                    href="#"
+                    onClick={_ => onChange(v.id)}
+                >
+                    {v.title}
+                </a>
             </li>)
         }
 

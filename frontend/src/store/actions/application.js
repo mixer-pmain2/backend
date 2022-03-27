@@ -11,3 +11,8 @@ export const getSprPodr = () => dispatch => {
     return appApi.getSprPodr()
         .then(r => dispatch(appReducer.setSprPodr(r)))
 }
+
+export const getSprPrava = () => dispatch => {
+    return appApi.getSprPrava()
+        .then(r => dispatch(appReducer.setSprPrava(r)))
+}

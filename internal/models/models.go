@@ -50,6 +50,7 @@ type Patient struct {
 	Visibility int    `json:"visibility"`
 	Sex        string `json:"sex"`
 	Snils      string `json:"snils"`
+	Address    string `json:"address"`
 }
 
 func (m *Patient) Serialize() error {
@@ -70,9 +71,15 @@ func (m *Patient) Serialize() error {
 	if err != err {
 		return err
 	}
+	m.Address, err = ToUTF8(m.Address)
+	if err != err {
+		return err
+	}
 	m.Lname = strings.ReplaceAll(m.Lname, " ", "")
 	m.Fname = strings.ReplaceAll(m.Fname, " ", "")
 	m.Sname = strings.ReplaceAll(m.Sname, " ", "")
+	m.Snils = strings.ReplaceAll(m.Snils, " ", "")
+	m.Address = strings.ReplaceAll(m.Address, " ", "")
 	bdayTime, err := time.Parse(time.RFC3339, m.Bday)
 	if err != err {
 		return err
@@ -85,9 +92,20 @@ type Visit struct {
 	Id        int    `json:"id"`
 	PatientId int    `json:"patientId"`
 	Date      string `json:"date"`
-	DoctId    int    `json:"doctId"`
+	DockId    int    `json:"doctId"`
 	Diagnose  string `json:"diagnose"`
 	Type      int    `json:"type"`
 	Pord      int    `json:"pord"`
 	Home      bool   `json:"home"`
+}
+
+type Registrat struct {
+	Id        int
+	PatientId int
+	Uch       int
+	RegDate   string
+	DockId    int
+	Reason    string
+	Category  int
+	Diagnose  string
 }

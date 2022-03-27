@@ -3,8 +3,10 @@ import Pagination from "../Pagination";
 
 const PAGE_SIZE = 10
 
-const Table = ({columns, data, mapper, onDoubleClick}) => {
+const Table = ({columns, data, mapper, onDoubleClick, selecting}) => {
     const [currentPage, setCurrentPage] = useState(0)
+    const [selectedRow, setSelectedRow] = useState(false  )
+    const selectedStyle = selecting ? {backgroundColor: "gray", color: "white"} : {}
 
     let total = Math.floor(data.length / PAGE_SIZE)
     if (data.length % PAGE_SIZE > 0) total += 1
@@ -39,7 +41,11 @@ const Table = ({columns, data, mapper, onDoubleClick}) => {
             }
             <tbody>
             {data?.map((row, i) => showDataOnlyForPage(i) &&
-                <tr key={i} onDoubleClick={_ => onDoubleClick(row)}>
+                <tr key={i}
+                    onDoubleClick={_ => onDoubleClick(row)}
+                    onClick={_ => setSelectedRow(i)}
+                    style={selectedRow === i ? selectedStyle : {}}
+                >
                     {mapper(row)}
                 </tr>)}
             {data.length === 0 && <tr>

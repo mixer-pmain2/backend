@@ -15,3 +15,13 @@ export const findById = ({id}) => dispatch =>
 
 export const select = (item) => dispatch =>
     dispatch(patientReducer.select(item))
+
+export const reset = () => dispatch =>
+    dispatch(patientReducer.reset())
+
+export const getUchet = (payload) => dispatch =>
+    patientApi.findUchet(payload)
+        .then(res => {
+            dispatch(patientReducer.setUchet(res))
+            return res
+        })

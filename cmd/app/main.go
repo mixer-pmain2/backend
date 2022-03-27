@@ -34,8 +34,10 @@ func main() {
 	//Patient
 	apiRouter.HandleFunc("/patient/find/",
 		apperror.Middleware(apiHandlers.Patient.Find))
-	apiRouter.HandleFunc("/patient/{id:[0-9]}/", apperror.Middleware(apiHandlers.Patient.Get))
+	apiRouter.HandleFunc("/patient/{id:[0-9]*}/uchet/", apperror.Middleware(apiHandlers.Patient.FindUchet))
+	apiRouter.HandleFunc("/patient/{id:[0-9]*}/", apperror.Middleware(apiHandlers.Patient.Get))
 	apiRouter.HandleFunc("/spr/podr/", apperror.Middleware(apiHandlers.Spr.GetPodr))
+	apiRouter.HandleFunc("/spr/prava/", apperror.Middleware(apiHandlers.Spr.GetPrava))
 
 	webRouter := server.Router.PathPrefix("/").Subrouter()
 	webRouter.PathPrefix("/static/").Handler(http.FileServer(http.Dir("./")))

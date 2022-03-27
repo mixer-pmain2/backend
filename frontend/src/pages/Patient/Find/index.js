@@ -15,7 +15,7 @@ import Table from "../../../components/Table";
 import notify, {notifyType} from "../../../components/Notify";
 
 
-const FoundPatient = ({dispatch, application, patient, type = app.DISPANSER}) => {
+const FindPatient = ({dispatch, application, patient, type = app.DISPANSER}) => {
     const [isFounded, setIsFounded] = useState(false)
     const [fio, setFio] = useState("")
     const [patientId, setPatientId] = useState("")
@@ -51,7 +51,6 @@ const FoundPatient = ({dispatch, application, patient, type = app.DISPANSER}) =>
         dispatch(patientActions.findById({id}))
             .then(res => {
                 if (res?.id) {
-                    console.log(res)
                     dispatch(patientActions.select(res))
                     navigate(linkDict.patient.replaceAll(":id", id))
                 } else {
@@ -66,12 +65,14 @@ const FoundPatient = ({dispatch, application, patient, type = app.DISPANSER}) =>
     const handleFindPatient = (e) => {
         e.preventDefault()
         const [patientId, fio] = e.target
-        if (fio.value.length < 3 && fio.value.length > 0) return notifyInfo("Нужно больше информации")
+        // if (fio.value.length < 3 && fio.value.length > 0) return notifyInfo("Нужно больше информации")
 
         if (patientId.value.length > 0) {
             findById(patientId.value)
-        } else {
+        } else if (fio.value.length > 0) {
             findByFio(fio.value)
+        } else {
+            notifyInfo("Нужно больше информации")
         }
     }
 
@@ -156,11 +157,12 @@ const FoundPatient = ({dispatch, application, patient, type = app.DISPANSER}) =>
                 <button className="input-group-text btn btn-outline-primary">Найти</button>
             </div>
         </form>
-        {<Table
+        {isFounded && <Table
             columns={["Шифр", "Фамилия", "Имя", "Отчество", "Дата рождения"]}
             data={foundPatient}
             mapper={mapper}
             onDoubleClick={handleSelectPatient}
+            selecting={true}
         />}
     </Layout>
 }
@@ -168,4 +170,4 @@ const FoundPatient = ({dispatch, application, patient, type = app.DISPANSER}) =>
 export default connect(state => ({
     patient: state.patient,
     application: state.application
-}))(FoundPatient)
+}))(FindPatient)

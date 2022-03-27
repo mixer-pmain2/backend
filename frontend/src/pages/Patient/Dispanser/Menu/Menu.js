@@ -1,14 +1,13 @@
 import React from "react"
 import SubMenu from "../../../../components/SubMenu";
 
-export const AmbTabs = ["Посещения", "Учет", ]
-
-const Menu = ({onChange, curTab}) => {
+const Menu = ({onChange, curTab, tabs, style}) => {
 
     return <SubMenu
-        tabs={AmbTabs}
+        tabs={tabs}
         onChange={onChange}
         curTab={curTab}
+        style={style}
     />
 }
 

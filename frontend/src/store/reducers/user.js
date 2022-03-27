@@ -38,7 +38,7 @@ export const userStore = createSlice({
         setPrava: (state, action) => {
             state = {
                 ...state,
-                prava: action.payload
+                access: action.payload
             }
             saveToStore(state, storeName)
             return state
@@ -46,7 +46,7 @@ export const userStore = createSlice({
         setCurrentPodr: (state, action) => {
             state = {
                 ...state,
-                podr: action.payload
+                unit: action.payload
             }
             saveToStore(state, storeName)
             return state

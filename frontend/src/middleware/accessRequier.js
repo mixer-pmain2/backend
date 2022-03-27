@@ -3,32 +3,19 @@ import {connect} from "react-redux";
 
 import NotAccessedPage from "../pages/NotAccessed";
 
+import {isAccessed} from "../configs/access";
+
 const AccessRequire = (props) => {
     const {children, dispatch, user, params} = props
 
-    console.log("middleware Access", user.podr)
-    console.log(user)
+    console.log("middleware Access")
 
-    console.log(props)
+    const userUnit = user?.unit
+    const userAccess = user?.access?.[userUnit]
 
-    const curPodr = user?.podr
-    const curPrava = user?.prava[curPodr]
-
-    const checkAccess = (accessList) => {
-        for (let i=0; i < accessList.length; i++) {
-            const accessPodr = accessList[i].podr
-            const accessPrava = accessList[i].prava
-            console.log(accessPodr, accessPrava, curPodr, curPrava)
-            if (curPodr === accessPodr && (curPrava & accessPrava) > 0)
-                return true
-        }
-        return false
-    }
-
-    if (!checkAccess(params.access)) {
+    if (!isAccessed(params.access, userUnit, userAccess)) {
         return <NotAccessedPage/>
     }
-
 
     return <>{children}</>
 }
