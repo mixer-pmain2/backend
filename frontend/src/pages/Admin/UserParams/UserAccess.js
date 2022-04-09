@@ -1,9 +1,9 @@
 import React, {useState} from "react";
 import {connect} from "react-redux";
-import UserFind from "./UserFind";
+
 
 const UserAccess = (props) => {
-    const {application, user, dispatch} = props
+    const {application, user, dispatch, selectUser} = props
     const units = application.spr.unit
     const unitsIndex = Object.keys(units)
     const [curTab, setCurTab] = useState(unitsIndex[0])
@@ -11,11 +11,10 @@ const UserAccess = (props) => {
     const access = application.spr.access
     let accessFiltered = access.filter((v) => v.unit === Number(curTab))
     const [isCheckedAccess, setIsCheckedAccess] = useState(
-        accessFiltered.map(v => ({[v.code]: (user?.access?.[curTab] & v.code) > 0}))
+        accessFiltered.map(v => ({[v.code]: (selectUser?.access?.[curTab] & v.code) > 0}))
     )
 
     return <div>
-        <UserFind/>
         <hr/>
         <div className="d-flex">
             <div className="w-25">

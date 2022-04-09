@@ -11,6 +11,9 @@ export const setBasic = (token) => {
     basicAuth = "Basic "+token
 }
 
+export const paramsToUrlQuery = (payload) => {
+    return Object.keys(payload).map((v, i) => `${v}=${payload[v]}`).join("&")
+}
 
 export const request = (method, url, headers = {}, body = {}) => {
     console.log("request", method, url)

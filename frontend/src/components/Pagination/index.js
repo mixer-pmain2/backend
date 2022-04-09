@@ -20,10 +20,12 @@ const Pagination = ({current, total, nextPage, prevPage, onPage}) => {
         return true
     }
 
+    const stylePagBtn = {cursor: "pointer"}
+
     return <nav>
         <ul className="pagination">
             <li className={`page-item ${isFirst && "disabled"}`} disabled={isFirst}>
-                <a className="page-link" href="#" aria-label="Previous" onClick={prevPage}>
+                <a className="page-link" aria-label="Previous" onClick={prevPage} style={stylePagBtn}>
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
@@ -31,12 +33,12 @@ const Pagination = ({current, total, nextPage, prevPage, onPage}) => {
                 pagesArr.map(v => {
                         return (v === 0 || v === total - 1 || (v >= current - 2 && v <= current + 2)) ?
                             <li className={`page-item ${current === v ? "active" : ""}`} key={v}>
-                                <a className="page-link" href="#" onClick={_ => onPage(v)}>
+                                <a className="page-link" onClick={_ => onPage(v)} style={stylePagBtn}>
                                     {v + 1}
                                 </a>
                             </li> :
                             (!checkDotBtn(v) && <li className={`page-item`} key={v}>
-                                <a className="page-link" href="#">
+                                <a className="page-link">
                                     ...
                                 </a>
                             </li>)
@@ -44,7 +46,7 @@ const Pagination = ({current, total, nextPage, prevPage, onPage}) => {
                 )
             }
             <li className={`page-item ${isLast && "disabled"}`} disabled={isLast}>
-                <a className="page-link" href="#" aria-label="Next" onClick={nextPage}>
+                <a className="page-link" aria-label="Next" onClick={nextPage} style={stylePagBtn}>
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>

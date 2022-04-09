@@ -2,17 +2,24 @@ package middleware
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-	"pmain2/internal/api"
 	"pmain2/internal/controller"
+	"pmain2/pkg/cache"
 	"pmain2/pkg/logger"
+	"pmain2/pkg/utils"
+	"time"
 )
 
 var (
 	INFO, _  = logger.New("app", logger.INFO)
 	ERROR, _ = logger.New("app", logger.ERROR)
+	appCache = cache.CreateCache(time.Minute, time.Minute)
 )
+
+type auth struct {
+	username string
+	password string
+}
 
 func BasicAuth(h http.Handler) http.Handler {
 
@@ -20,15 +27,22 @@ func BasicAuth(h http.Handler) http.Handler {
 
 		username, password, ok := r.BasicAuth()
 		if ok {
-			c := controller.Init()
-			isAuth, err := c.User.IsAuth(username, password)
-			INFO.Println("BasicAuth, ok=", isAuth, " err=", err)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-				ERROR.Println(err.Error())
-				return
+			isAuth, ok := appCache.Get(auth{username: username, password: password})
+			if !ok {
+				c := controller.Init()
+				var err error
+				user, _ := utils.ToWin1251(username)
+				pass, _ := utils.ToWin1251(password) // utils.ToASCII(password)
+				isAuth, err = c.User.IsAuth(user, pass)
+				if err != nil {
+					INFO.Println("BasicAuth, ok=", isAuth, " err=", err)
+					http.Error(w, err.Error(), http.StatusUnauthorized)
+					ERROR.Println(err.Error())
+					return
+				}
+				appCache.Set(auth{username: username, password: password}, isAuth, 0)
 			}
-			if isAuth {
+			if isAuth != nil && isAuth.(bool) {
 				h.ServeHTTP(w, r)
 				return
 			}
@@ -41,8 +55,7 @@ func BasicAuth(h http.Handler) http.Handler {
 
 func Logging(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		api.INFO.Println(fmt.Sprint(r.URL))
-		log.Println(r.URL)
+		INFO.Println(fmt.Sprint(r.URL))
 		h.ServeHTTP(w, r)
 	})
 }

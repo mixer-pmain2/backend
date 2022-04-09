@@ -8,7 +8,7 @@ import Card from "./components/Card";
 import * as userActions from "../../store/actions/user";
 import {linkDict} from "../../routes";
 import {useNavigate} from "react-router-dom";
-import * as appActions from "../../store/actions/application";
+
 
 const unitList = [
     {
@@ -59,8 +59,7 @@ const StartPage = ({dispatch, user, application}) => {
     const initUser = useCallback(() => {
         if (user?.id) {
             dispatch(userActions.getPrava({id: user?.id}))
-            dispatch(appActions.getSprPodr())
-            dispatch(appActions.getSprPrava())
+            dispatch(userActions.getUch({id: user?.id}))
         }
     }, [user?.id])
 

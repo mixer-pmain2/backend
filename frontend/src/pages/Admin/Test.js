@@ -24,7 +24,10 @@ const Test = ({dispatch}) => {
         <div>
             <button onClick={_ => dispatch(appActions.enableLoading())}>on</button>
             <button onClick={_ => dispatch(appActions.disableLoading())}>off</button>
-            <SideLoading isLoading={isLoading}/>
+        </div>
+        <div>
+            <button onClick={_ => dispatch(appActions.loadingAdd("test1"))}>on</button>
+            <button onClick={_ => dispatch(appActions.loadingRemove("test1"))}>off</button>
         </div>
     </div>
 }

@@ -1,0 +1,1 @@
+cd ./frontend && yarn build && cd .. && xcopy ".\frontend\build\static\" ".\build\static\" /s/h/e/k/f/c/y && xcopy ".\frontend\build\index.html" ".\build\templates\index.html"

@@ -28,9 +28,25 @@ export const patientStore = createSlice({
             }
             saveToStore(state, storeName)
             return state
+        },
+        setVisits: (state, action) => {
+            state = {
+                ...state,
+                visit: action.payload
+            }
+            saveToStore(state, storeName)
+            return state
+        },
+        setHospital: (state, action) => {
+            state = {
+                ...state,
+                hospital: action.payload
+            }
+            saveToStore(state, storeName)
+            return state
         }
     }
 })
 
-export const {select, reset, setUchet} = patientStore.actions
+export const {select, reset, setUchet, setVisits, setHospital} = patientStore.actions
 export default patientStore.reducer

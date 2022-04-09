@@ -4,4 +4,5 @@
 /disp/patient/find
 /disp/patient/visit
 /disp/patient/{id}
+/admin
 /test

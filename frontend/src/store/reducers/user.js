@@ -50,9 +50,17 @@ export const userStore = createSlice({
             }
             saveToStore(state, storeName)
             return state
+        },
+        setUch: (state, action) => {
+            state = {
+                ...state,
+                section: action.payload
+            }
+            saveToStore(state, storeName)
+            return state
         }
     }
 })
 
-export const { login, logout, setToken, setPrava, setCurrentPodr } = userStore.actions
+export const { login, logout, setToken, setPrava, setCurrentPodr, setUch } = userStore.actions
 export default userStore.reducer

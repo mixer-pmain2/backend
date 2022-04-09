@@ -1,12 +1,12 @@
 package utils
 
 import (
-	"io/ioutil"
-	"strings"
-	"time"
-
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
+	"io/ioutil"
+	"strconv"
+	"strings"
+	"time"
 )
 
 func ToUTF8(text string) (string, error) {
@@ -35,4 +35,20 @@ func ToWin1251(text string) (string, error) {
 
 func ToDate(t time.Time) string {
 	return t.Format("2006-01-02")
+}
+
+func RuneToAscii(r rune) string {
+	if r < 128 {
+		return string(r)
+	} else {
+		return "\\u" + strconv.FormatInt(int64(r), 16)
+	}
+}
+
+func ToASCII(text string) string {
+	var res string
+	for _, s := range text {
+		res = res + RuneToAscii(s)
+	}
+	return res
 }

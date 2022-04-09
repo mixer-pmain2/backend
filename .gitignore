@@ -2,5 +2,6 @@
 .idea
 
 build/
-static/jsapp/*
+static
+index.html
 logs/*

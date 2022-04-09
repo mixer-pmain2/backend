@@ -105,3 +105,65 @@ func (p *patientApi) FindUchet(w http.ResponseWriter, r *http.Request) error {
 	fmt.Fprintf(w, string(marshal))
 	return nil
 }
+
+func (p *patientApi) HistoryVisits(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return nil
+	}
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.HistoryVisits(id)
+	if err != nil {
+		return err
+	}
+
+	if len(*data) == 0 {
+		fmt.Fprintf(w, "[]")
+		return nil
+	}
+
+	marshal, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, string(marshal))
+	return nil
+}
+
+func (p *patientApi) HistoryHospital(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return nil
+	}
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.HistoryHospital(id)
+	if err != nil {
+		return err
+	}
+
+	if len(*data) == 0 {
+		fmt.Fprintf(w, "[]")
+		return nil
+	}
+
+	marshal, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, string(marshal))
+	return nil
+}

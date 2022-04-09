@@ -15,7 +15,7 @@ import Table from "../../../components/Table";
 import notify, {notifyType} from "../../../components/Notify";
 
 
-const FindPatient = ({dispatch, application, patient, type = app.DISPANSER}) => {
+const FindPatient = ({dispatch, type = app.DISPANSER}) => {
     const [isFounded, setIsFounded] = useState(false)
     const [fio, setFio] = useState("")
     const [patientId, setPatientId] = useState("")
@@ -35,13 +35,14 @@ const FindPatient = ({dispatch, application, patient, type = app.DISPANSER}) => 
 
 
     const findByFio = fio => {
-        dispatch(appActions.enableLoading())
+        const loadingName = "find_by_fio"
+        dispatch(appActions.loadingAdd(loadingName))
         dispatch(patientActions.findByFio({fio}))
             .then(res => {
                 setFoundPatient(res)
             })
             .finally(() => {
-                dispatch(appActions.disableLoading())
+                dispatch(appActions.loadingRemove(loadingName))
                 setIsFounded(true)
             })
     }
@@ -133,7 +134,7 @@ const FindPatient = ({dispatch, application, patient, type = app.DISPANSER}) => 
                         maxLength={10}
                         onChange={e => {
                             e.target.value.length > 0 && setPatientId(e.target.value)
-                            setFio("")
+                            fio && setFio("")
                         }}
                         value={Number(patientId) || ""}
                     />

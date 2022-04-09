@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+var (
+	AppCache *Cache
+)
+
 type CacheI interface {
 	Get(key, t interface{}) (interface{}, bool)
 	Set(key, value interface{}, ttl time.Duration)
@@ -58,7 +62,7 @@ func (c *Cache) Set(key, value interface{}, ttl time.Duration) {
 
 	c.item[key] = Item{
 		Value:      value,
-		Expiration: time.Now().Add(ttl).UnixNano(),
+		Expiration: time.Now().Add(expiration).UnixNano(),
 	}
 }
 

@@ -9,12 +9,12 @@ import UserParams from "./UserParams";
 const tabs = [
     {
         id: 0,
-        title: "Test"
+        title: "Пользователь"
     },
     {
-        id: 1,
-        title: "User params"
-    }
+        id: 99,
+        title: "Test"
+    },
 ]
 
 const AdminPage = (props) => {
@@ -22,8 +22,8 @@ const AdminPage = (props) => {
 
     return <Layout>
         <SubMenu tabs={tabs} curTab={curTab} onChange={setCurTab} style={{marginBottom: 35}}/>
-        {curTab === tabs[0].id && <Test {...props}/>}
-        {curTab === tabs[1].id && <UserParams/>}
+        {curTab === tabs[0].id && <UserParams/>}
+        {curTab === tabs[1].id && <Test {...props}/>}
     </Layout>
 }
 

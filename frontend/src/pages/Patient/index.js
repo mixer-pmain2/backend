@@ -116,13 +116,13 @@ const GetPatient = (props) => {
         }
     }, [])
 
-    useEffect(() => {
+    // useEffect(() => {
         // dispatch(appActions.enableLoading())
         // if (patient?.id && !patient?.uchet) {
         //     dispatch(patientActions.getUchet({id: patient.id}))
         // }
         // dispatch(appActions.disableLoading())
-    }, [patient?.id])
+    // }, [patient?.id])
 
     return <Layout>
         <PatientDetail

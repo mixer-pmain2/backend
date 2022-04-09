@@ -11,7 +11,7 @@ type SprModel struct {
 	DB *sql.DB
 }
 
-func CreateSpr(db *sql.DB) *SprModel {
+func createSpr(db *sql.DB) *SprModel {
 	return &SprModel{DB: db}
 }
 
@@ -76,4 +76,35 @@ order by maska1, maska2`)
 		data = append(data, row)
 	}
 	return &data, nil
+}
+
+type SprVisitD struct {
+	Code int
+	Name string
+}
+
+func (m *SprModel) GetSprVisit() (*map[int]string, error) {
+	sql := fmt.Sprintf(`SELECT MASKA1, NA_ME 
+FROM SPR_VISIT_N svn 
+WHERE KOD1 = 3 AND MASKA1 > 0`)
+	rows, err := m.DB.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	var data = make(map[int]string, 32)
+	for rows.Next() {
+		row := SprVisitD{}
+		err = rows.Scan(&row.Code, &row.Name)
+		if err != nil {
+			return nil, err
+		}
+		row.Name, err = utils.ToUTF8(row.Name)
+		row.Name = strings.Trim(row.Name, " ")
+		if err != nil {
+			return nil, err
+		}
+		data[row.Code] = row.Name
+	}
+	return &data, nil
+
 }

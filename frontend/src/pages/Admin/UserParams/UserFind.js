@@ -2,11 +2,10 @@ import React, {useState} from "react";
 
 import * as userApi from "../../../api/user"
 
-const UserFind = () => {
-    const [selectUser, setSelectUser] = useState({})
+const UserFind = ({setSelectUser, selectUser}) => {
 
     const onReset = () => {
-
+        setSelectUser({})
     }
 
     const findUserById = (id) => {

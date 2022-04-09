@@ -4,6 +4,10 @@ import (
 	"database/sql"
 )
 
-type RegistratModel struct {
+type registratModel struct {
 	DB *sql.DB
+}
+
+func createRegistrat(db *sql.DB) *registratModel {
+	return &registratModel{DB: db}
 }

@@ -10,14 +10,19 @@ import (
 )
 
 func IndexServe(w http.ResponseWriter, r *http.Request) {
-	path := filepath.Join("templates", "index.html")
-	tmpl, _ := template.ParseFiles(path)
+	tmpl, err := template.ParseFiles("index.html")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("template not found"))
+		return
+	}
 	tmpl.Execute(w, nil)
 }
 
 func RoutesFrontend(router *mux.Router, handle http.HandlerFunc) {
 	path, _ := os.Getwd()
-	file, _ := os.Open(path + "./.froutes")
+	fullpath := filepath.Join(path, "frontend.routes")
+	file, _ := os.Open(fullpath)
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {

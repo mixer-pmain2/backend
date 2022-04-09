@@ -25,3 +25,17 @@ export const getUchet = (payload) => dispatch =>
             dispatch(patientReducer.setUchet(res))
             return res
         })
+
+export const getHistoryVisits = (payload) => dispatch =>
+    patientApi.getVisits(payload)
+        .then(res => {
+            dispatch(patientReducer.setVisits(res))
+            return res
+        })
+
+export const getHistoryHospital = (payload) => dispatch =>
+    patientApi.getHospital(payload)
+        .then(res => {
+            dispatch(patientReducer.setHospital(res))
+            return res
+        })

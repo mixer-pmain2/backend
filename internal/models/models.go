@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"strings"
 	"time"
 
@@ -11,7 +12,27 @@ import (
 var (
 	INFO, _  = logger.New("dbase", logger.INFO)
 	ERROR, _ = logger.New("dbase", logger.ERROR)
+
+	Model *models
 )
+
+type models struct {
+	Patient   patientModel
+	Registrat registratModel
+	Spr       SprModel
+	User      userModel
+	Visit     VisitModel
+}
+
+func Init(db *sql.DB) *models {
+	return &models{
+		Patient:   *createPatient(db),
+		Registrat: *createRegistrat(db),
+		Spr:       *createSpr(db),
+		User:      *createUser(db),
+		Visit:     *createVisit(db),
+	}
+}
 
 type SprDoct struct {
 	Id       int    `json:"id"`

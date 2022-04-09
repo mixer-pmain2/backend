@@ -13,7 +13,7 @@ type patientModel struct {
 	DB *sql.DB
 }
 
-func CreatePatient(db *sql.DB) *patientModel {
+func createPatient(db *sql.DB) *patientModel {
 	return &patientModel{DB: db}
 }
 
@@ -46,7 +46,7 @@ from general g, find_adres(g.patient_id,0) where patient_id=%v`, id)
 		ERROR.Println(err.Error())
 		return nil, err
 	}
-	INFO.Println(res)
+	INFO.Println(string(res))
 
 	return &data, nil
 }
@@ -59,6 +59,7 @@ func (m *patientModel) FindByFIO(lname, fname, sname string) (*[]Patient, error)
 				and fname like ?
 				and sname like ?
 				order by lname, fname, sname`)
+	INFO.Println(sql)
 	stmt, err := m.DB.Prepare(sql)
 	if err != nil {
 		return nil, err
@@ -161,7 +162,7 @@ order by datp desc,  nz DESC`, patientId)
 		if err != nil {
 			return nil, err
 		}
-		r.Reason = strings.Trim(r.ReasonS, " ")
+		r.Reason = strings.Trim(r.Reason, " ")
 		r.DiagnoseS, err = utils.ToUTF8(strings.Trim(r.DiagnoseS, " "))
 		if err != nil {
 			return nil, err

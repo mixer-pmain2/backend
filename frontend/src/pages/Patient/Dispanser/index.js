@@ -27,7 +27,7 @@ const Dispanser = (props) => {
             onChange={setCurrentTab}
             style={{marginBottom: 20}}
         />}
-        {currentTab === dispanserSubModules.visit.id && <Visit {...props}/>}
+        {currentTab === dispanserSubModules.visit.id && <Visit/>}
         {currentTab === dispanserSubModules.history.id && <History {...props}/>}
         {currentTab === dispanserSubModules.uchet.id && <Uchet {...props}/>}
         {currentTab === dispanserSubModules.invalid.id && <Invalid {...props}/>}

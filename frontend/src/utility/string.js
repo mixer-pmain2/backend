@@ -12,5 +12,8 @@ export const formatDate = (s = "", format="dd.mm.YYYY") => {
 }
 
 export function capitalizeFirstLetter(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
+    return string?.charAt(0).toUpperCase() + string?.slice(1);
 }
+
+export const shorty = (text, len) =>
+    (text || "").substring(0, len)+(text?.length>len?"...":"")

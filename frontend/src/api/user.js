@@ -1,10 +1,10 @@
 import {API, request} from "./request";
 
 
-export const signIn = ({username, password}) => {
+export const signIn = ({token}) => {
     const url = API + "/auth/signin/"
     const headers = {
-        "Authorization": "Basic "+btoa(username+":"+password)
+        "Authorization": "Basic "+token
     }
     return request("GET", url, headers, {})
 }
@@ -16,5 +16,10 @@ export const getPrava = ({id}) => {
 
 export const getUser = ({id}) => {
     const url = API + `/user/${id}/`
+    return request('GET', url, {}, {})
+}
+
+export const getUch = ({id}) => {
+    const url = API + `/user/${id}/uch/`
     return request('GET', url, {}, {})
 }

@@ -9,7 +9,7 @@ type VisitModel struct {
 	DB *sql.DB
 }
 
-func CreateVisit(db *sql.DB) *VisitModel {
+func createVisit(db *sql.DB) *VisitModel {
 	return &VisitModel{DB: db}
 }
 

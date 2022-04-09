@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"pmain2/internal/controller"
 	"pmain2/internal/database"
 	"pmain2/internal/models"
 )
@@ -19,19 +20,8 @@ func (s *sprApi) GetPodr(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return nil
 	}
-
-	conn, err := database.Connect()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	model := models.CreateSpr(conn.DB)
-	data, err := model.GetPodr()
-	if err != nil {
-		return err
-	}
-
+	contr := controller.Init()
+	data, err := contr.Spr.GetPodr()
 	res, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -46,15 +36,26 @@ func (s *sprApi) GetPrava(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return nil
 	}
+	contr := controller.Init()
+	data, err := contr.Spr.GetPrava()
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
 
+}
+
+func (s *sprApi) GetSprVisit(w http.ResponseWriter, r *http.Request) error {
 	conn, err := database.Connect()
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	model := models.CreateSpr(conn.DB)
-	data, err := model.GetPrava()
+	model := models.Init(conn.DB).Spr
+	data, err := model.GetSprVisit()
 	if err != nil {
 		return err
 	}
@@ -65,5 +66,4 @@ func (s *sprApi) GetPrava(w http.ResponseWriter, r *http.Request) error {
 	}
 	fmt.Fprintf(w, string(res))
 	return nil
-
 }

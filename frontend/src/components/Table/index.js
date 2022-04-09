@@ -3,7 +3,7 @@ import Pagination from "../Pagination";
 
 const PAGE_SIZE = 10
 
-const Table = ({columns, data, mapper, onDoubleClick, selecting}) => {
+const Table = ({columns, data, mapper, onDoubleClick, selecting, onClick}) => {
     const [currentPage, setCurrentPage] = useState(0)
     const [selectedRow, setSelectedRow] = useState(false  )
     const selectedStyle = selecting ? {backgroundColor: "gray", color: "white"} : {}
@@ -26,6 +26,11 @@ const Table = ({columns, data, mapper, onDoubleClick, selecting}) => {
 
     const showDataOnlyForPage = (i) => currentPage * PAGE_SIZE <= i && (currentPage * PAGE_SIZE + PAGE_SIZE) > i
 
+    const handleClick = (i) => {
+        setSelectedRow(i)
+        onClick && onClick(data[i])
+    }
+
     useEffect(() => {
         setCurrentPage(0)
     }, [data])
@@ -43,7 +48,7 @@ const Table = ({columns, data, mapper, onDoubleClick, selecting}) => {
             {data?.map((row, i) => showDataOnlyForPage(i) &&
                 <tr key={i}
                     onDoubleClick={_ => onDoubleClick(row)}
-                    onClick={_ => setSelectedRow(i)}
+                    onClick={_ => handleClick(i)}
                     style={selectedRow === i ? selectedStyle : {}}
                 >
                     {mapper(row)}
@@ -57,13 +62,13 @@ const Table = ({columns, data, mapper, onDoubleClick, selecting}) => {
 
         </table>
         <div className="d-flex justify-content-end">
-            <Pagination
+            {total > 1 && <Pagination
                 total={total}
                 current={currentPage}
                 nextPage={handleNextPage}
                 prevPage={handlePrevPage}
                 onPage={onPage}
-            />
+            />}
         </div>
     </div>
 }

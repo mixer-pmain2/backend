@@ -5,6 +5,7 @@ const storeName = "app"
 
 const initialState = localStorage.getItem(storeName) ? JSON.parse(localStorage.getItem(storeName)) : {
     loading: false,
+    loadingList: [],
     spr: {}
 }
 
@@ -12,6 +13,29 @@ export const applicationStore = createSlice({
     name: storeName,
     initialState,
     reducers: {
+        loadingListAdd: (state, action) => {
+            const l = state?.loadingList ? state?.loadingList : []
+            state = {
+                ...state,
+                loadingList: [...l, action.payload]
+            }
+            return state
+        },
+        loadingListRemove: (state, action) => {
+            state = {
+                ...state,
+                loadingList: state.loadingList.filter(v => v !== action.payload)
+            }
+            return state
+
+        },
+        loadingListReset: (state) => {
+            state = {
+                ...state,
+                loadingList: []
+            }
+            return state
+        },
         loadingEnable: (state) => {
             state = {
                 ...state,
@@ -47,9 +71,20 @@ export const applicationStore = createSlice({
             }
             saveToStore(state, storeName)
             return state
+        },
+        setSprVisit: (state, action) => {
+            state = {
+                ...state,
+                spr: {
+                    ...state.spr,
+                    visit: action.payload
+                }
+            }
+            saveToStore(state, storeName)
+            return state
         }
     }
 })
 
-export const {loadingEnable, loadingDisable, setSprPodr, setSprPrava} = applicationStore.actions
+export const {loadingEnable, loadingDisable, setSprPodr, setSprPrava, loadingListAdd, loadingListRemove, loadingListReset, setSprVisit} = applicationStore.actions
 export default applicationStore.reducer
