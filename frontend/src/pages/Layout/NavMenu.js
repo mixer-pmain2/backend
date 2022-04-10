@@ -20,11 +20,11 @@ const NavMenu = ({onLogout, user, app, patient}) => {
 
     return <nav className="navbar navbar-expand-lg navbar-light bg-light">
         <div className="container-fluid">
-            <Link to={linkDict.start} className="navbar-brand">КПБ</Link>
+            <Link to={linkDict.start} className="navbar-brand">PMain2 Web</Link>
             <div className="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul className="navbar-nav me-auto mb-2 mb-lg-0">
                     {user?.unit && <li className="nav-item">
-                        <Link to={linkDict.start} className="nav-link">{app.spr?.unit?.[user?.unit]}</Link>
+                        <Link to={linkDict.findPatient} className="nav-link">{app.spr?.unit?.[user?.unit]}</Link>
                     </li>}
                     {patient?.id && <li className="nav-item">
                         <Link to={urlPatient()} className="nav-link">Пациент</Link>

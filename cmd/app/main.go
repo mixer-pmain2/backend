@@ -69,6 +69,7 @@ func main() {
 	apiRouterNonAuth.HandleFunc("/spr/podr/", apperror.Middleware(apiHandlers.Spr.GetPodr)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouterNonAuth.HandleFunc("/spr/prava/", apperror.Middleware(apiHandlers.Spr.GetPrava)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouterNonAuth.HandleFunc("/spr/visit/", apperror.Middleware(apiHandlers.Spr.GetSprVisit)).Methods(http.MethodGet, http.MethodOptions)
+	apiRouterNonAuth.HandleFunc("/spr/diag/", apperror.Middleware(apiHandlers.Spr.GetSprDiags)).Methods(http.MethodGet, http.MethodOptions)
 
 	webRouter := server.Router.PathPrefix("/").Subrouter()
 	webRouter.PathPrefix("/static/").Handler(http.FileServer(http.Dir("./")))

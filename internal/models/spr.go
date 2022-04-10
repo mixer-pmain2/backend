@@ -108,3 +108,36 @@ WHERE KOD1 = 3 AND MASKA1 > 0`)
 	return &data, nil
 
 }
+
+type DiagM struct {
+	Head         string `json:"head"`
+	Diag         string `json:"diag"`
+	Title        string `json:"title"`
+	HaveChildren bool   `json:"haveChildren"`
+}
+
+func (m *SprModel) GetDiags(diag string) (*[]DiagM, error) {
+	sql := fmt.Sprintf(`SELECT kod1, kod2, nam, uroven FROM diag1m where kod1 = '%s'`, diag)
+	rows, err := m.DB.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	var data []DiagM
+	for rows.Next() {
+		row := DiagM{}
+		err = rows.Scan(&row.Head, &row.Diag, &row.Title, &row.HaveChildren)
+		if err != nil {
+			return nil, err
+		}
+		row.Title, err = utils.ToUTF8(row.Title)
+		row.Title = strings.Trim(row.Title, " ")
+		row.Head = strings.Trim(row.Head, " ")
+		row.Diag = strings.Trim(row.Diag, " ")
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, row)
+	}
+	return &data, nil
+
+}

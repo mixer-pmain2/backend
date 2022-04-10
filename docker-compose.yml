@@ -9,3 +9,5 @@ services:
       - "80:80"
     volumes:
       - ./logs:/app/logs
+      - ./.env:/app/.env
+      - ./frontend.routes:/app/frontend.routes

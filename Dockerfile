@@ -8,6 +8,7 @@ COPY ./frontend/.babelrc.json ./
 COPY ./frontend/package.json ./
 COPY ./frontend/webpack.config.js ./
 COPY ./frontend/yarn.lock ./
+COPY ./frontend/jsconfig.json ./
 RUN mkdir build
 
 RUN yarn install
@@ -37,8 +38,8 @@ WORKDIR /app
 COPY --from=build-backend /pmain2 ./
 COPY --from=build-frontend /app/build/static ./static
 COPY --from=build-frontend /app/build/index.html ./
-COPY frontend.routes ./
-COPY .env ./
+#COPY frontend.routes ./
+#COPY .env ./
 
 
 EXPOSE 80

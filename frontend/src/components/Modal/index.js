@@ -1,41 +1,48 @@
 import React from "react";
 
-const modalBtn = {
-    CLOSE: 0,
-    SAVE: 1
-}
+export const BTN_CLOSE = 1;
+export const BTN_SAVE = 2;
+export const BTN_OK = 4;
+export const BTN_CANCEL = 8;
+export const BTN_YES = 16;
+export const BTN_NO = 32;
 
-const Modal = ({onClose, isOpen = false, title = "", body}) => {
 
-    if (!isOpen) {
-        return null
-    }
-    console.log(isOpen)
-    return <div className="modal" tabIndex="-1" style={{display: "block"}}>
-        <div className="modal-dialog">
-            <div className="modal-content">
-                <div className="modal-header">
-                    <h5 className="modal-title">Modal title</h5>
-                    <button
-                        type="button"
-                        className="btn-close"
-                        data-bs-dismiss="modal"
-                        aria-label="Close"
-                        onClick={onClose}
-                    />
-                </div>
-                <div className="modal-body">
-                    {body}
-                </div>
-                <div className="modal-footer">
-                    <button type="button" className="btn btn-secondary" data-bs-dismiss="modal" onClick={onClose}>
-                        Закрыть
-                    </button>
-                    <button type="button" className="btn btn-primary">Save changes</button>
-                </div>
-            </div>
+const Modal = ({onClose, onSave, onOk, onNo, onYes, onCancel, isOpen = false, title = "", body, btnNum = 1}) => {
+
+  if (!isOpen) {
+    return null
+  }
+  console.log(btnNum)
+  return <div className="modal" tabIndex="-1" style={{display: "block", backgroundColor: "rgba(0,0,0,.2)"}}>
+    <div className="modal-dialog" style={{opacity: 1}}>
+      <div className="modal-content">
+        <div className="modal-header">
+          <h5 className="modal-title">{title}</h5>
+          <button
+            type="button"
+            className="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+            onClick={onClose}
+          />
         </div>
+        <div className="modal-body">
+          {body}
+        </div>
+        <div className="modal-footer">
+          {(btnNum & BTN_SAVE) > 0    && <button type="button" className="btn btn-primary" onClick={onSave}>Сохранить</button>}
+          {(btnNum & BTN_OK) > 0      && <button type="button" className="btn btn-primary" onClick={onOk}>Ok</button>}
+          {(btnNum & BTN_YES) > 0     && <button type="button" className="btn btn-primary" onClick={onYes}>Да</button>}
+          {(btnNum & BTN_NO) > 0      && <button type="button" className="btn btn-outline-primary" onClick={onNo}>Нет</button>}
+          {(btnNum & BTN_CANCEL) > 0  && <button type="button" className="btn btn-outline-danger" onClick={onYes}>Отмена</button>}
+          {(btnNum & BTN_CLOSE) > 0   && <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Закрыть
+          </button>}
+        </div>
+      </div>
     </div>
+  </div>
 }
 
 export default Modal

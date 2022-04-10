@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"pmain2/internal/controller"
-	"pmain2/internal/database"
-	"pmain2/internal/models"
 )
 
 type sprApi struct{}
@@ -48,14 +46,26 @@ func (s *sprApi) GetPrava(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *sprApi) GetSprVisit(w http.ResponseWriter, r *http.Request) error {
-	conn, err := database.Connect()
+	c := controller.Init()
+	data, err := c.Spr.GetSprVisit()
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
 
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetSprVisit()
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) GetSprDiags(w http.ResponseWriter, r *http.Request) error {
+	query := r.URL.Query()
+	diag := query.Get("diag")
+
+	c := controller.Init()
+	data, err := c.Spr.GetDiags(diag)
 	if err != nil {
 		return err
 	}
