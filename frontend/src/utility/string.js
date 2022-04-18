@@ -11,6 +11,15 @@ export const formatDate = (s = "", format="dd.mm.YYYY") => {
     return res.join(".")
 }
 
+export const formatDateToInput = (d) => {
+    let month = (d.getMonth()+1)
+    if (month < 10) month = '0'+month
+    let day = d.getDate()
+    if (day < 10) day = '0'+day
+    let date = d.getFullYear() + '-' + month + '-' + day
+    return date
+}
+
 export function capitalizeFirstLetter(string) {
     return string?.charAt(0).toUpperCase() + string?.slice(1);
 }

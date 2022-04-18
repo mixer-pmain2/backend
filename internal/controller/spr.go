@@ -112,3 +112,28 @@ func (s *spr) GetDiags(diag string) (*[]models.DiagM, error) {
 	cache.AppCache.Set(cacheName, data, time.Hour)
 	return data, nil
 }
+
+func (s *spr) GetParams() (*[]models.ServiceM, error) {
+	cacheName := "service_params"
+
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok {
+		res := item.(*[]models.ServiceM)
+		return res, nil
+	}
+
+	conn, err := database.Connect()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	model := models.Init(conn.DB).Spr
+	data, err := model.GetParams()
+	if err != nil {
+		return nil, err
+	}
+
+	cache.AppCache.Set(cacheName, data, time.Minute*10)
+	return data, nil
+}

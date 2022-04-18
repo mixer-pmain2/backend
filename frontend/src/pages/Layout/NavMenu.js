@@ -32,11 +32,11 @@ const NavMenu = ({onLogout, user, app, patient}) => {
                 </ul>
             </div>
             <div>
-                {isAccessed(accessAdminPage, uUnit, uAccess) && <button className="btn btn-danger">
-                    <Link to={linkDict.admin} className="nav-link link-light" style={{padding: 0}}>admin</Link>
+                {isAccessed(accessAdminPage, uUnit, uAccess) && <button className="btn btn-outline-danger">
+                    <Link to={linkDict.admin} className="nav-link link-dark" style={{padding: 0}}>admin</Link>
                 </button>}
                 <span className="m-2 navbar-text">Пользователь: {fio}</span>
-                <button className="btn btn-primary" onClick={onLogout}>Выход</button>
+                <button className="btn btn-outline-primary" onClick={onLogout}>Выход</button>
             </div>
         </div>
     </nav>

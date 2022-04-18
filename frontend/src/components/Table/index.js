@@ -21,6 +21,10 @@ const Table = ({columns, data, mapper, onDoubleClick, selecting, onClick}) => {
         setCurrentPage(currentPage - 1)
     }
 
+    const handleDoubleClick = (e) => {
+        onDoubleClick && onDoubleClick(e)
+    }
+
     const onPage = (num) =>
         setCurrentPage(num)
 
@@ -47,7 +51,7 @@ const Table = ({columns, data, mapper, onDoubleClick, selecting, onClick}) => {
             <tbody>
             {data?.map((row, i) => showDataOnlyForPage(i) &&
                 <tr key={i}
-                    onDoubleClick={_ => onDoubleClick(row)}
+                    onDoubleClick={_ => handleDoubleClick(row)}
                     onClick={_ => handleClick(i)}
                     style={selectedRow === i ? selectedStyle : {}}
                 >

@@ -3,7 +3,7 @@ import axios from "axios";
 import * as userActions from "../store/actions/user"
 import Notify, {notifyType} from "../components/Notify";
 
-export const API = "http://localhost:80/api/v0"
+export const API = (process.env.NODE_ENV === 'production') ? "" : "http://localhost:80/api/v0"
 
 export let basicAuth = "";
 
@@ -39,9 +39,9 @@ export const request = (method, url, headers = {}, body = {}) => {
 }
 
 export const reqError = (err) => {
-    console.log(err.response.status)
+    const status = err.response?.status ? err.response?.status : 0
 
-    switch (err.response.status) {
+    switch (status) {
         case 401:
             Notify(notifyType.ERROR, "Ошибка авторизации")()
             break

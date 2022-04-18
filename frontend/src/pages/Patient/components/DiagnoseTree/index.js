@@ -1,51 +1,32 @@
 import React, {useEffect, useState} from "react";
+import {connect} from "react-redux";
 
+import * as appActions from "store/actions/application"
 import * as apiSpr from "api/spr"
+import {TreeView} from "components/Tree";
+import Modal, {BTN_NO, BTN_YES} from "components/Modal";
 
-
-const TreeItem = ({title, value, onSelect}) => {
-  return <div>
-    <button className="btn" style={{width: 40}} onClick={_ => onSelect(value)}/>
-    <span onClick={_ => onSelect(value)}>{value} {title}</span>
-  </div>
-}
-
-const TreeNode = ({node, onOpen}) => {
-  const [data, setData] = useState([])
-  const [isOpen, setIsOpen] = useState(false)
-
-  const handleClick = () => {
-    setIsOpen(!isOpen)
-    if (!isOpen && data.length === 0) onOpen(node.value, setData)
+export const getTypeDiagsModal = (uch) => {
+  switch (uch) {
+    case 11:
+    case 12:
+      return 1
+    case 13:
+    case 14:
+    case 15:
+      return 0
+    case 16:
+      return 2
+    default:
+      return 0
   }
-
-  return <div style={{cursor: "pointer"}}>
-    <button className="btn" style={{width: 40}} onClick={handleClick}>{isOpen ? "-" : "+"}</button>
-    <span onClick={handleClick}>{node.value} {node.title}</span>
-    {isOpen && data.length > 0 && <div>
-      <TreeView data={data} getData={(v, setData) => onOpen(v, setData)}/>
-    </div>}
-  </div>
 }
 
-const TreeView = ({data, getData}) => {
-
-  return <div>
-    {
-      data.map((v, i) => <div key={i} style={{marginLeft: 25}}>
-          {
-            v.isNode ?
-              <TreeNode node={v} onOpen={getData}/> :
-              <TreeItem value={v.value} title={v.title} onSelect={console.log}/>
-          }
-        </div>
-      )
-    }
-  </div>
-}
-
-const DiagnoseTree = () => {
+const DiagnoseTree = ({dispatch, onSelect = console.log, type = 1}) => {
   const [diags, setDiags] = useState([])
+  const [selected, setSelected] = useState("")
+  const [isOpenModalDiag, setIsOpenModalDiag] = useState(false)
+  const [isOpenConfirm, setIsOpenConfirm] = useState(false)
 
   const mapper = (data) => data.map((v, i) => ({
     title: v.title,
@@ -53,21 +34,80 @@ const DiagnoseTree = () => {
     isNode: v.haveChildren
   }))
 
-  const getDiag = (diag = "", mapper, setData) => {
+  const diagFilter = (diags, isMain = true) => {
+    diags = diags || []
+    /*
+    0 - все
+    1 - психиатрия + z
+    2 - наркология + z
+    3 - соматика
+    4 - психиатрия + наркология + z
+    5 - психиатрия
+     */
+    if (isMain) {
+      if (type === 0) return diags
+      if (type === 1) return diags.filter(v => ["F00-F99", "Z00-Z99"].indexOf(v.diag) + 1)
+      if (type === 2) return diags.filter(v => ["F00-F99", "Z00-Z99"].indexOf(v.diag) + 1)
+      if (type === 3) return diags.filter(v => !(["F00-F99"].indexOf(v.diag) + 1))
+      if (type === 4) return diags.filter(v => ["F00-F99", "Z00-Z99"].indexOf(v.diag) + 1)
+      if (type === 5) return diags.filter(v => ["F00-F99"].indexOf(v.diag) + 1)
+    }
+    if (type === 1) return diags.filter(v => (v.diag.length <= 6) ? true : !(["F10-F19"].indexOf(v.diag) + 1))
+    if (type === 2) return diags.filter(v => (v.diag.length <= 6) ? true : ((["F10-F19"].indexOf(v.diag) + 1) || v.head === "Z00-Z99"))
+    if (type === 5) return diags.filter(v => (v.diag.length <= 6) ? true : !(["F10-F19"].indexOf(v.diag) + 1))
+    return diags
+  }
+
+  const getDiagMain = (diag = "", mapper, setData) => {
+    const nameLoaded = "spr_diag_main_" + diag
+    dispatch(appActions.loadingAdd(nameLoaded))
     apiSpr.getSprDiag({diag})
       .then(res => {
-        setData(mapper(res))
+        setData(mapper(diagFilter(res)))
       })
+      .finally(() => dispatch(appActions.loadingRemove(nameLoaded)))
+  }
+
+  const getDiag = (diag = "", mapper, setData) => {
+    const nameLoaded = "spr_diag_" + diag
+    dispatch(appActions.loadingAdd(nameLoaded))
+    apiSpr.getSprDiag({diag})
+      .then(res => {
+        setData(mapper(diagFilter(res, false)))
+      })
+      .finally(() => dispatch(appActions.loadingRemove(nameLoaded)))
+  }
+
+  const handleSelect = (diag) => {
+    setSelected(diag)
+    setIsOpenConfirm(true)
   }
 
   useEffect(() => {
-    getDiag("", mapper, setDiags)
+    getDiagMain("", mapper, setDiags)
   }, [])
 
-  console.log(diags)
   return <div>
-    <TreeView data={diags} getData={(v, setData) => getDiag(v, mapper, setData)}/>
+    <TreeView
+      data={diags}
+      getData={(v, setData) => getDiag(v, mapper, setData)}
+      onSelect={handleSelect}
+    />
+
+    <Modal
+      title={"Вы выбрали диагноз " + selected}
+      body={<div>
+        <span>{selected} Это правильно?</span>
+      </div>}
+      btnNum={BTN_YES + BTN_NO}
+      onYes={() => onSelect(selected)}
+      onNo={() => setIsOpenConfirm(false)}
+      isOpen={isOpenConfirm}
+      onClose={() => setIsOpenConfirm(false)}
+    />
   </div>
 }
 
-export default DiagnoseTree
+export default connect(state => ({
+  application: state.application
+}))(DiagnoseTree)

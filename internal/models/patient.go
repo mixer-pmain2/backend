@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"pmain2/internal/apperror"
+	"pmain2/internal/types"
 	"pmain2/pkg/utils"
 	"strings"
+	"time"
 )
 
 type patientModel struct {
@@ -125,18 +127,19 @@ func (m *patientModel) FindDisp(id int) (*[]FindDispS, error) {
 }
 
 type FindUchetS struct {
-	Id           int            `json:"id"`
-	Date         string         `json:"date"`
-	Category     int            `json:"category"`
-	CategoryS    string         `json:"categoryS"`
-	Reason       string         `json:"reason"`
-	ReasonS      string         `json:"reasonS"`
-	Diagnose     string         `json:"diagnose"`
-	DiagnoseS    string         `json:"diagnoseS"`
-	DockId       int            `json:"dockId"`
-	DockNameNull sql.NullString `json:"-"`
-	DockName     string         `json:"dockName"`
-	Section      int            `json:"section"`
+	Id            int            `json:"id"`
+	Date          string         `json:"date"`
+	Category      int            `json:"category"`
+	CategoryS     string         `json:"categoryS"`
+	Reason        string         `json:"reason"`
+	ReasonS       string         `json:"reasonS"`
+	Diagnose      string         `json:"diagnose"`
+	DiagnoseS     string         `json:"diagnoseS"`
+	DiagnoseSNull sql.NullString `json:"-"`
+	DockId        int            `json:"dockId"`
+	DockNameNull  sql.NullString `json:"-"`
+	DockName      string         `json:"dockName"`
+	Section       int            `json:"section"`
 }
 
 func (m *patientModel) FindUchet(patientId int) (*[]FindUchetS, error) {
@@ -150,7 +153,7 @@ order by datp desc,  nz DESC`, patientId)
 	var data []FindUchetS
 	for rows.Next() {
 		r := FindUchetS{}
-		err = rows.Scan(&r.Id, &r.Date, &r.Category, &r.CategoryS, &r.Reason, &r.ReasonS, &r.Diagnose, &r.DiagnoseS, &r.DockId, &r.DockNameNull, &r.Section)
+		err = rows.Scan(&r.Id, &r.Date, &r.Category, &r.CategoryS, &r.Reason, &r.ReasonS, &r.Diagnose, &r.DiagnoseSNull, &r.DockId, &r.DockNameNull, &r.Section)
 		if err != nil {
 			return nil, err
 		}
@@ -163,6 +166,7 @@ order by datp desc,  nz DESC`, patientId)
 			return nil, err
 		}
 		r.Reason = strings.Trim(r.Reason, " ")
+		r.DiagnoseS = r.DiagnoseSNull.String
 		r.DiagnoseS, err = utils.ToUTF8(strings.Trim(r.DiagnoseS, " "))
 		if err != nil {
 			return nil, err
@@ -177,4 +181,91 @@ order by datp desc,  nz DESC`, patientId)
 	}
 
 	return &data, nil
+}
+
+func (m *patientModel) FindLastUchet(patientId int) (*FindUchetS, error) {
+	sqlQuery := fmt.Sprintf(`select First 1 nz, datp, m.categ, kat, rr, prich, diagt, diagts, trim(reg_doct), dock, uch from find_uchet_m(%v) m
+order by datp desc,  nz DESC`, patientId)
+	INFO.Println(sqlQuery)
+	row := m.DB.QueryRow(sqlQuery)
+	r := FindUchetS{}
+	err := row.Scan(&r.Id, &r.Date, &r.Category, &r.CategoryS, &r.Reason, &r.ReasonS, &r.Diagnose, &r.DiagnoseSNull, &r.DockId, &r.DockNameNull, &r.Section)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	r.CategoryS, err = utils.ToUTF8(r.CategoryS)
+	if err != nil {
+		return nil, err
+	}
+	r.ReasonS, err = utils.ToUTF8(strings.Trim(r.ReasonS, " "))
+	if err != nil {
+		return nil, err
+	}
+	r.Reason = strings.Trim(r.Reason, " ")
+	r.DiagnoseS = r.DiagnoseSNull.String
+	r.DiagnoseS, err = utils.ToUTF8(strings.Trim(r.DiagnoseS, " "))
+	if err != nil {
+		return nil, err
+	}
+	r.DockName = r.DockNameNull.String
+	r.DockName, err = utils.ToUTF8(strings.Trim(r.DockName, " "))
+	if err != nil {
+		return nil, err
+	}
+
+	return &r, nil
+}
+
+func (m *patientModel) NewVisit(visit types.NewVisit, tx *sql.Tx) (sql.Result, error) {
+	sql := fmt.Sprintf(`insert into visit(
+      PATIENT_ID, V_DATE, name_doct, 
+      MASKA1, MASKA2, MASKA3, 
+      DIAGNose, UCH_PID, UCH_Dock, 
+      upd_who, upd_date, BDAY,maska4)
+      values(%v, '%s', '%v', 
+      %v, %v, %v, 
+      '%s', '%v', %v, 
+      %v, '%s', '%s', %v)`,
+		visit.PatientId, visit.Date, visit.DockID,
+		visit.Visit, visit.Unit, 0,
+		visit.Diagnose, visit.Uch, visit.Uch,
+		visit.DockID, time.Now().Format("2006-01-02"), visit.PatientBDay, 0,
+	)
+	INFO.Println(sql)
+	result, err := tx.Exec(sql)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (m *patientModel) NewSRC(spc *types.NewSRC, tx *sql.Tx) (sql.Result, error) {
+	sql := fmt.Sprintf(`insert into detstvo_src(patient_id, date_add, id_dock, podr, zakl)
+values(%v, '%s', %v, %v, %v)`, spc.PatientId, spc.DateAdd, spc.DockId, spc.Unit, spc.Zakl)
+	INFO.Println(sql)
+	result, err := tx.Exec(sql)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (m *patientModel) IsVisited(visit *types.NewVisit) (bool, error) {
+	sql := fmt.Sprintf(
+		`SELECT kol from KONTR_VISIT(%v, %v, %v, '%s')`, visit.DockID, visit.Uch, visit.PatientId, visit.Date)
+	INFO.Println(sql)
+	row := m.DB.QueryRow(sql)
+	count := false
+	err := row.Scan(&count)
+	if err != nil {
+		return false, err
+	}
+
+	return count, nil
+
 }

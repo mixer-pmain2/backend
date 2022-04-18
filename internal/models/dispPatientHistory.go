@@ -91,3 +91,39 @@ func (m *patientModel) HistoryHospital(id int) (*[]HistoryHospital, error) {
 	return &data, nil
 
 }
+
+type HistorySPC struct {
+	Date string `json:"date"`
+	Res  string `json:"res"`
+}
+
+func (m *patientModel) HistorySPC(patientId int, podr int) (*[]HistorySPC, error) {
+	var data []HistorySPC
+	sql := fmt.Sprintf(`select cast(ds.date_add as date) as date_, case
+                    when ds.zakl = 0 then 'Согласие'
+                    when ds.zakl = 1 then 'Отказ'
+                    else 'ошибка'
+                    end as res_ 
+from detstvo_src ds
+where ds.patient_id = %v
+and ds.podr = %v
+order by ds.date_add`, patientId, podr)
+	INFO.Println(sql)
+	rows, err := m.DB.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		p := HistorySPC{}
+		err = rows.Scan(&p.Date, &p.Res)
+		date, _ := time.Parse(time.RFC3339, p.Date)
+		p.Date = utils.ToDate(date)
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, p)
+	}
+
+	return &data, nil
+
+}

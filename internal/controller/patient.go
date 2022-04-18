@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"pmain2/internal/consts"
 	"pmain2/internal/database"
 	"pmain2/internal/models"
+	"pmain2/internal/types"
 	"pmain2/pkg/cache"
 	"pmain2/pkg/utils"
 )
@@ -75,10 +77,10 @@ func (p *patient) FindUchet(id int) (*[]models.FindUchetS, error) {
 	return data, nil
 }
 
-func (p *patient) HistoryVisits(id int) (*[]models.HistoryVisit, error) {
+func (p *patient) HistoryVisits(id int, isCache bool) (*[]models.HistoryVisit, error) {
 	cacheName := fmt.Sprintf("disp_history_Visit_%v", id)
 	item, ok := cache.AppCache.Get(cacheName)
-	if ok {
+	if ok && isCache {
 		return item.(*[]models.HistoryVisit), nil
 	}
 	model := models.Model.Patient
@@ -105,4 +107,65 @@ func (p *patient) HistoryHospital(id int) (*[]models.HistoryHospital, error) {
 	}
 	cache.AppCache.Set(cacheName, data, 0)
 	return data, nil
+}
+
+func (p *patient) NewVisit(visit *types.NewVisit) (int, error) {
+	fmt.Println(*visit)
+	visit.Normalize()
+	model := models.Model.Patient
+	lastUchet, err := model.FindLastUchet(visit.PatientId)
+	if err != nil {
+		return 100, err
+	}
+
+	//-проверить что пациент не мертв или это работа с документами
+	if (lastUchet != nil && lastUchet.Reason == consts.REAS_DEAD) && visit.Visit&consts.VISIT_WORK_WITH_DOCUMENTS == 0 {
+		return 101, nil
+	}
+
+	//-в этот день не было посещений
+	isVisisted, err := model.IsVisited(visit)
+	if err != nil {
+		return 102, err
+	}
+
+	if isVisisted {
+		return 103, nil
+	}
+
+	conn, err := database.Connect()
+	if err != nil {
+		return 20, err
+	}
+	tx, err := conn.DB.Begin()
+	if err != nil {
+		return 21, err
+	}
+
+	model = models.Model.Patient
+	_, err = model.NewVisit(*visit, tx)
+	if err != nil {
+		tx.Rollback()
+		return 200, err
+	}
+	if visit.SRC >= 0 {
+		_, err = model.NewSRC(&types.NewSRC{
+			PatientId: visit.PatientId,
+			DateAdd:   visit.Date,
+			DockId:    visit.DockID,
+			Unit:      visit.Unit,
+			Zakl:      visit.SRC,
+		}, tx)
+		if err != nil {
+			tx.Rollback()
+			return 201, err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
+	}
+
+	return 0, nil
 }

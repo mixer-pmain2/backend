@@ -30,6 +30,7 @@ const HistoryVisit = ({patient}) => {
             </td>
         </>
     }
+
     return <div>
         <span>Диагноз приема </span><span title={selectRow?.diagS}>{shorty(selectRow?.diagS, 115)}</span>
         <Table
@@ -63,6 +64,7 @@ const HistoryHospital = ({patient}) => {
             </td>
         </>
     }
+
     return <div>
         <span>Диагноз выписки </span><span title={selectRow?.diagEndS}>{shorty(selectRow?.diagEndS)}</span>
         <Table
@@ -95,6 +97,10 @@ const History = ({dispatch, patient}) => {
         }
 
     }, [])
+
+    useEffect(() => {
+        console.log(patient)
+    })
 
     return <div>
         <div style={{marginBottom: 20}}>

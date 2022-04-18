@@ -11,7 +11,7 @@ import {linkDict} from "../../routes";
 
 import {formatDate} from "../../utility/string";
 import Dispanser from "./Dispanser";
-import Notify, {notifyType} from "../../components/Notify";
+
 
 const PatientDetail = ({onReset, patient}) => {
 
@@ -116,21 +116,13 @@ const GetPatient = (props) => {
         }
     }, [])
 
-    // useEffect(() => {
-        // dispatch(appActions.enableLoading())
-        // if (patient?.id && !patient?.uchet) {
-        //     dispatch(patientActions.getUchet({id: patient.id}))
-        // }
-        // dispatch(appActions.disableLoading())
-    // }, [patient?.id])
-
     return <Layout>
         <PatientDetail
             patient={patient}
             onReset={onReset}
         />
         <hr style={{marginTop: 10, marginBottom: 25}}/>
-        <Dispanser {...props}/>
+        <Dispanser/>
     </Layout>
 }
 

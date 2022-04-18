@@ -19,3 +19,8 @@ export const getSprDiag = ({diag = ""}) => {
   const url = API + `/spr/diag/?diag=${diag}`
   return request('GET', url, {}, {})
 }
+
+export const getParams = () => {
+  const url = API + `/service/`
+  return request('GET', url, {}, {})
+}

@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"pmain2/internal/apperror"
+	"pmain2/internal/consts"
 	"pmain2/internal/controller"
+	"pmain2/internal/types"
 	"strconv"
 )
 
@@ -116,9 +118,13 @@ func (p *patientApi) HistoryVisits(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
 
 	c := controller.Init()
-	data, err := c.Patient.HistoryVisits(id)
+	data, err := c.Patient.HistoryVisits(id, isCache)
 	if err != nil {
 		return err
 	}
@@ -165,5 +171,34 @@ func (p *patientApi) HistoryHospital(w http.ResponseWriter, r *http.Request) err
 	}
 
 	fmt.Fprintf(w, string(marshal))
+	return nil
+}
+
+func (p *patientApi) NewVisit(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	var newVisit types.NewVisit
+	err := json.NewDecoder(r.Body).Decode(&newVisit)
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	val, err := c.Patient.NewVisit(&newVisit)
+	if err != nil {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
 	return nil
 }

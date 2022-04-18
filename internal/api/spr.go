@@ -77,3 +77,18 @@ func (s *sprApi) GetSprDiags(w http.ResponseWriter, r *http.Request) error {
 	fmt.Fprintf(w, string(res))
 	return nil
 }
+
+func (s *sprApi) GetParams(w http.ResponseWriter, r *http.Request) error {
+	c := controller.Init()
+	data, err := c.Spr.GetParams()
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}

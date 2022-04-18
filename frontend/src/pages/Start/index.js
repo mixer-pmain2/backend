@@ -72,11 +72,15 @@ const StartPage = ({dispatch, user, application}) => {
         navigate(linkDict.findPatient)
     }
 
+    const unitFilter = (units) =>
+      units.filter(v => user?.access?.[v.unit])
+
+    const unitListFiltered = unitFilter(unitList)
     return <Layout>
         <div className="row d-flex justify-content-center">
-            {unitList.map((v, i) =>
+            {unitListFiltered.length ? unitListFiltered.map((v, i) =>
                 <Card key={i} title={v.title} img={v.img} onClick={_ => handleSelectUnit(v.unit)}/>
-            )}
+            ) : <h5>Нет доступных подразделений</h5>}
 
         </div>
     </Layout>

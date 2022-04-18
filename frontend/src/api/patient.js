@@ -27,3 +27,8 @@ export const getHospital = (payload) => {
     const url = API + `/patient/${payload.id}/history/hospital/?`+paramsToUrlQuery(payload)
     return request("GET", url, {}, {})
 }
+
+export const newVisit = (payload) => {
+    const url = API + `/patient/${payload.patientId}/visit/`
+    return request("POST", url, {}, {...payload})
+}

@@ -141,3 +141,46 @@ func (m *SprModel) GetDiags(diag string) (*[]DiagM, error) {
 	return &data, nil
 
 }
+
+type ServiceM struct {
+	Param     string  `json:"param"`
+	ParamI    int     `json:"paramI"`
+	ParamD    float64 `json:"paramD"`
+	ParamS    string  `json:"paramS"`
+	Comment   string  `json:"comment"`
+	DateStart string  `json:"dateStart"`
+	DateEnd   string  `json:"dateEnd"`
+}
+
+func (m *SprModel) GetParams() (*[]ServiceM, error) {
+	sql := fmt.Sprintf(`select param, PARAM_I, PARAM_D, PARAM_S, KOMMENT, DN, DK from servis`)
+	rows, err := m.DB.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	var data []ServiceM
+	for rows.Next() {
+		row := ServiceM{}
+		err = rows.Scan(&row.Param, &row.ParamI, &row.ParamD, &row.ParamS, &row.Comment, &row.DateStart, &row.DateEnd)
+		if err != nil {
+			return nil, err
+		}
+		row.ParamS, err = utils.ToUTF8(row.ParamS)
+		if err != nil {
+			return nil, err
+		}
+		row.Comment, err = utils.ToUTF8(row.Comment)
+		if err != nil {
+			return nil, err
+		}
+		row.ParamS = strings.Trim(row.ParamS, " ")
+		row.Comment = strings.Trim(row.Comment, " ")
+		row.Param = strings.Trim(row.Param, " ")
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, row)
+	}
+	return &data, nil
+
+}
