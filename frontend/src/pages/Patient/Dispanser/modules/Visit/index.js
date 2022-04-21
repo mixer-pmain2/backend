@@ -1,7 +1,6 @@
 import React, {useEffect, useState} from "react";
 import {connect} from "react-redux";
 
-import {messageNotValidAge, srcReason, visitHomeTypeGroup, visitTypeGroup} from "../../../../../consts/visit";
 import DiagnoseTree, {getTypeDiagsModal} from "pages/Patient/components/DiagnoseTree";
 import Modal, {BTN_NO, BTN_YES} from "components/Modal";
 import Notify, {notifyType} from "components/Notify";
@@ -13,21 +12,25 @@ import {getAge, stringToDate} from "utility/date";
 import {formatDateToInput} from "utility/string";
 import useParams from "utility/app"
 
-import {Unit} from "../../../../../consts/user";
+import {Unit} from "consts/user";
+import {messageNotValidAge, srcReason, visitHomeTypeGroup, visitTypeGroup} from "consts/visit";
 
 
 const Visit = ({dispatch, application, patient, user}) => {
+  const [state, setState] = useState({
+    error: "",
+    src: -1,
+    isAcceptNotValidAge: false,
+    isOpenConfirmAge: false,
+    isOpenDiagModal: false,
+    isSubmit: false,
+  })
   const params = useParams(application.params)
-  const [error, setError] = useState("")
-  const [src, setSRC] = useState(-1)
   const srcEnable = user.unit === 16 || user.unit === 16777216 || user.unit === 33554432 ? true : false
-  const [isAcceptNotValidAge, setIsAcceptNotValidAge] = useState(false)
-  const [isOpenConfirmAge, setIsOpenConfirmAge] = useState(false)
   const [dateRange, setDateRange] = useState({
     min: "",
     max: ""
   })
-  const [isOpenDiagModal, setIsOpenDiagModal] = useState(false)
   const [form, setForm] = useState({
     uch: user?.section[user.unit]?.[0] || "",
     visit: 0,
@@ -119,13 +122,22 @@ const Visit = ({dispatch, application, patient, user}) => {
   }
 
   const handleAcceptAgeYes = () => {
-    setIsAcceptNotValidAge(true)
-    setIsOpenConfirmAge(false)
-    handleNewVisit()
+    setState({
+      ...state,
+      isAcceptNotValidAge: true,
+      isOpenConfirmAge: false,
+      isSubmit: true
+    })
+    // handleNewVisit()
   }
 
   const handleAcceptAgeNo = () => {
-    setIsOpenConfirmAge(false)
+    setState({
+      ...state,
+      isAcceptNotValidAge: false,
+      isOpenConfirmAge: false,
+      isSubmit: false
+    })
   }
 
   const submitNewVisit = (e) => {
@@ -134,15 +146,20 @@ const Visit = ({dispatch, application, patient, user}) => {
   }
 
   const handleNewVisit = () => {
-    setError("")
     console.log(form)
     if (form.diagnose === "" || form.diagnose.length < 3) {
-      setIsOpenDiagModal(true)
+      setState({
+        ...state,
+        isOpenDiagModal: true
+      })
       return
     }
-    console.log(!isAcceptNotValidAge, !isValidAge())
-    if (!isAcceptNotValidAge && !isValidAge()) {
-      setIsOpenConfirmAge(true)
+    console.log(!state.isAcceptNotValidAge, !isValidAge())
+    if (!state.isAcceptNotValidAge && !isValidAge()) {
+      setState({
+        ...state,
+        isOpenConfirmAge: true
+      })
       return
     }
 
@@ -155,7 +172,10 @@ const Visit = ({dispatch, application, patient, user}) => {
         }
         if (res?.error) {
           notifyError(res?.message)
-          setError(res?.message)
+          setState({
+            ...state,
+            error: res?.message
+          })
         }
       })
   }
@@ -165,9 +185,13 @@ const Visit = ({dispatch, application, patient, user}) => {
       ...form,
       visit: 0
     })
-    setSRC(-1)
-    setIsAcceptNotValidAge(false)
-    setError("")
+    setState({
+      ...state,
+      error: "",
+      src: -1,
+      isAcceptNotValidAge: false,
+      isSubmit: false
+    })
   }
 
   const setDate = (e) => {
@@ -178,24 +202,37 @@ const Visit = ({dispatch, application, patient, user}) => {
   }
 
   const onSelectDiag = (diagnose) => {
+    setState({
+      ...state,
+      isOpenDiagModal: false,
+      isSubmit: true
+    })
     setForm({
       ...form,
-      diagnose: diagnose
+      diagnose: diagnose,
     })
-    setIsOpenDiagModal(false)
-    handleNewVisit()
   }
 
   const onChangeSRC = (e) => {
     let srcValue = -1
     if (e.target.checked) srcValue = e.target.value
-    setSRC(srcValue)
 
+    setState({
+      ...state,
+      src: srcValue
+    })
     setForm({
       ...form,
-      src: Number(srcValue)
+      src: Number(srcValue),
     })
   }
+
+  useEffect(() => {
+    if (state.isSubmit) {
+      handleNewVisit()
+    }
+
+  }, [state.isSubmit])
 
   useEffect(() => {
     let action = false
@@ -218,7 +255,7 @@ const Visit = ({dispatch, application, patient, user}) => {
       diagnose: getLastDiag()
     })
   }, [patient.visit])
-
+  console.log(state)
   return <div>
     <div className="d-flex align-items-center">
       <div className="form-check form-switch" style={{marginRight: 15}}>
@@ -243,7 +280,7 @@ const Visit = ({dispatch, application, patient, user}) => {
         </div>
         <div className="d-flex flex-column justify-content-start" style={{width: 200}}>
           <ViewUch data={user.section[user.unit]}/>
-          <span className="text-danger">{error}</span>
+          <span className="text-danger">{state.error}</span>
           <input type="submit" className="btn btn-primary" value="Записать" disabled={!isValidVisit()}/>
         </div>
 
@@ -254,7 +291,7 @@ const Visit = ({dispatch, application, patient, user}) => {
           {
             srcReason.map((v, i) => <div key={i} style={{marginRight: 15}}>
               <input type="checkbox" className="form-check-input p-2" name="src_reason" id={`src_reason${i}`}
-                     value={v.value} style={{marginRight: 5}} onChange={onChangeSRC} checked={src == v.value}/>
+                     value={v.value} style={{marginRight: 5}} onChange={onChangeSRC} checked={state.src == v.value}/>
               <label className="form-check-label" htmlFor={`src_reason${i}`}>{v.title}</label>
             </div>)
           }
@@ -264,13 +301,13 @@ const Visit = ({dispatch, application, patient, user}) => {
     <Modal
       style={{maxWidth: 750}}
       body={<DiagnoseTree type={getTypeDiagsModal(form.uch)} onSelect={onSelectDiag}/>}
-      isOpen={isOpenDiagModal}
-      onClose={() => setIsOpenDiagModal(false)}
+      isOpen={state.isOpenDiagModal}
+      onClose={() => setState({...state, isOpenDiagModal: false})}
     />
     <Modal
       body={<div>{messageNotValidYearOld}</div>}
-      isOpen={isOpenConfirmAge}
-      onClose={() => setIsOpenConfirmAge(false)}
+      isOpen={state.isOpenConfirmAge}
+      onClose={() => setState({...state, isOpenConfirmAge: false})}
       btnNum={BTN_YES + BTN_NO}
       onYes={handleAcceptAgeYes}
       onNo={handleAcceptAgeNo}
