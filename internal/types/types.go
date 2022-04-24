@@ -21,8 +21,17 @@ type NewVisit struct {
 	Date        string `json:"date"`
 	PatientId   int    `json:"patientId"`
 	PatientBDay string `json:"patientBDay"`
-	DockID      int    `json:"dockID"`
+	DockId      int    `json:"dockId"`
 	SRC         int    `json:"src"`
+}
+
+type NewProf struct {
+	Count  int    `json:"count"`
+	Date   string `json:"date"`
+	Unit   int    `json:"unit"`
+	DockId int    `json:"dockId"`
+	Uch    int    `json:"uch"`
+	Home   bool   `json:"home"`
 }
 
 type NewSRC struct {

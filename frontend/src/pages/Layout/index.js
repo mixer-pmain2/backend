@@ -6,7 +6,7 @@ import SignInPage from "../Signin";
 import {checkUser, logout} from "../../store/actions/user";
 
 import NotificationContainer from "react-notifications/lib/NotificationContainer";
-import {SideLoading, typeLoading} from "../../components/Loading";
+import Loading, {SideLoading, typeLoading} from "../../components/Loading";
 
 import NavMenu from "./NavMenu";
 import Progress from "../../components/Progress";
@@ -42,7 +42,9 @@ function Layout({children, user, application, dispatch, patient}) {
         }
         <NotificationContainer/>
         <SideLoading isLoading={application.loading}/>
-        {/*<SideLoading type={typeLoading.INFO} isLoading={application?.loadingList?.length > 0}/>*/}
+        <div style={{position: "fixed", bottom: 35, right: 35}}>
+            <Loading type={typeLoading.INFO} isLoading={application?.loadingList?.length > 0}/>
+        </div>
         {application?.loadingList?.length > 0 && <Progress style={{position: "fixed", top: 0, left: 0, width: "100%"}}/>}
         <footer style={{height: 150}}>
 

@@ -94,38 +94,6 @@ func (m *patientModel) GetAddress(id int) (string, error) {
 	return address, nil
 }
 
-type FindDispS struct {
-	VisitId       int    `json:"visitId"`
-	Date          string `json:"date"`
-	DockName      string `json:"dockName"`
-	Diag          string `json:"diag"`
-	DiagS         string `json:"diagS"`
-	Reason        string `json:"reason"`
-	TypeVisit     string `json:"typeVisit"`
-	TypeVisitCode int    `json:"typeVisitCode"`
-	Where         int    `json:"where"`
-}
-
-func (m *patientModel) FindDisp(id int) (*[]FindDispS, error) {
-	var data []FindDispS
-	sql := fmt.Sprintf(`select v_n, dat, dokf, diag, diag_t, prich, sost, m1, m2 from find_disp(%v)
-     order by dat DESC`, id)
-	rows, err := m.DB.Query(sql)
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		row := FindDispS{}
-		err := rows.Scan(&row.VisitId, &row.Date, &row.DockName, &row.Diag, &row.DiagS, &row.Reason, &row.TypeVisit,
-			&row.TypeVisitCode, &row.Where)
-		if err != nil {
-			return nil, err
-		}
-		data = append(data, row)
-	}
-	return &data, nil
-}
-
 type FindUchetS struct {
 	Id            int            `json:"id"`
 	Date          string         `json:"date"`
@@ -229,10 +197,10 @@ func (m *patientModel) NewVisit(visit types.NewVisit, tx *sql.Tx) (sql.Result, e
       %v, %v, %v, 
       '%s', '%v', %v, 
       %v, '%s', '%s', %v)`,
-		visit.PatientId, visit.Date, visit.DockID,
+		visit.PatientId, visit.Date, visit.DockId,
 		visit.Visit, visit.Unit, 0,
 		visit.Diagnose, visit.Uch, visit.Uch,
-		visit.DockID, time.Now().Format("2006-01-02"), visit.PatientBDay, 0,
+		visit.DockId, time.Now().Format("2006-01-02"), visit.PatientBDay, 0,
 	)
 	INFO.Println(sql)
 	result, err := tx.Exec(sql)
@@ -257,7 +225,7 @@ values(%v, '%s', %v, %v, %v)`, spc.PatientId, spc.DateAdd, spc.DockId, spc.Unit,
 
 func (m *patientModel) IsVisited(visit *types.NewVisit) (bool, error) {
 	sql := fmt.Sprintf(
-		`SELECT kol from KONTR_VISIT(%v, %v, %v, '%s')`, visit.DockID, visit.Uch, visit.PatientId, visit.Date)
+		`SELECT kol from KONTR_VISIT(%v, %v, %v, '%s')`, visit.DockId, visit.Uch, visit.PatientId, visit.Date)
 	INFO.Println(sql)
 	row := m.DB.QueryRow(sql)
 	count := false
@@ -268,4 +236,28 @@ func (m *patientModel) IsVisited(visit *types.NewVisit) (bool, error) {
 
 	return count, nil
 
+}
+
+func (m *patientModel) NewProf(visit types.NewProf, tx *sql.Tx) (sql.Result, error) {
+	sql := fmt.Sprintf(`insert into visit(
+      PATIENT_ID, V_DATE, name_doct, 
+      MASKA1, MASKA2, MASKA3, 
+      DIAGNose, UCH_PID, UCH_Dock, 
+      upd_who, upd_date, BDAY,maska4)
+      values(%v, '%s', '%v', 
+      %v, %v, %v, 
+      '%s', '%v', %v, 
+      %v, '%s', '%s', %v)`,
+		306258, visit.Date, visit.DockId,
+		1024, visit.Unit, 0,
+		"Z", visit.Uch, visit.Uch,
+		visit.DockId, time.Now().Format("2006-01-02"), "25.10.1917", 0,
+	)
+	INFO.Println(sql)
+	result, err := tx.Exec(sql)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

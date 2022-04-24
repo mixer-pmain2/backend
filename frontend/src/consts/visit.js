@@ -25,3 +25,7 @@ export const messageNotValidAge = {
   sup: "На приеме пациент младше 18-ти лет. Записать?",
   sub: "На приеме пациент старше 18-ти лет. Записать?",
 }
+
+export const profVisit = {
+  maxCount: 20
+}

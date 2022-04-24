@@ -130,7 +130,7 @@ func (p *patient) NewVisit(visit *types.NewVisit) (int, error) {
 	}
 
 	if isVisisted {
-		return 103, nil
+		return 202, nil
 	}
 
 	conn, err := database.Connect()
@@ -142,6 +142,9 @@ func (p *patient) NewVisit(visit *types.NewVisit) (int, error) {
 		return 21, err
 	}
 
+	//Обрезаем до 10, т.к. в посещениях длина диагноза 10
+	visit.Diagnose = visit.Diagnose[0:10]
+
 	model = models.Model.Patient
 	_, err = model.NewVisit(*visit, tx)
 	if err != nil {
@@ -152,13 +155,48 @@ func (p *patient) NewVisit(visit *types.NewVisit) (int, error) {
 		_, err = model.NewSRC(&types.NewSRC{
 			PatientId: visit.PatientId,
 			DateAdd:   visit.Date,
-			DockId:    visit.DockID,
+			DockId:    visit.DockId,
 			Unit:      visit.Unit,
 			Zakl:      visit.SRC,
 		}, tx)
 		if err != nil {
 			tx.Rollback()
 			return 201, err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
+	}
+
+	return 0, nil
+}
+
+func (p *patient) NewProf(visit *types.NewProf) (int, error) {
+	fmt.Println(*visit)
+	visit.Normalize()
+	model := models.Model.Patient
+
+	conn, err := database.Connect()
+	if err != nil {
+		return 20, err
+	}
+	tx, err := conn.DB.Begin()
+	if err != nil {
+		return 21, err
+	}
+
+	if visit.Count == 0 {
+		return 203, nil
+	}
+
+	model = models.Model.Patient
+	for i := 0; i < visit.Count; i++ {
+		_, err = model.NewProf(*visit, tx)
+		if err != nil {
+			tx.Rollback()
+			return 200, err
 		}
 	}
 

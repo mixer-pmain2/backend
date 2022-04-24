@@ -19,16 +19,21 @@ export const findUchet = ({id}) => {
 }
 
 export const getVisits = (payload) => {
-    const url = API + `/patient/${payload.id}/history/visit/?`+paramsToUrlQuery(payload)
+    const url = API + `/patient/${payload.id}/visit/?`+paramsToUrlQuery(payload)
     return request("GET", url, {}, {})
 }
 
 export const getHospital = (payload) => {
-    const url = API + `/patient/${payload.id}/history/hospital/?`+paramsToUrlQuery(payload)
+    const url = API + `/patient/${payload.id}/hospital/?`+paramsToUrlQuery(payload)
     return request("GET", url, {}, {})
 }
 
 export const newVisit = (payload) => {
     const url = API + `/patient/${payload.patientId}/visit/`
+    return request("POST", url, {}, {...payload})
+}
+
+export const newProf = (payload) => {
+    const url = API + `/patient/prof/`
     return request("POST", url, {}, {...payload})
 }

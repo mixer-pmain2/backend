@@ -1,11 +1,12 @@
 import React, {useEffect, useState} from "react"
 import Pagination from "../Pagination";
+import Loading from "../Loading";
 
 const PAGE_SIZE = 10
 
-const Table = ({columns, data, mapper, onDoubleClick, selecting, onClick}) => {
+const Table = ({columns, data, mapper, onDoubleClick, selecting, onClick, loading}) => {
     const [currentPage, setCurrentPage] = useState(0)
-    const [selectedRow, setSelectedRow] = useState(false  )
+    const [selectedRow, setSelectedRow] = useState(false)
     const selectedStyle = selecting ? {backgroundColor: "gray", color: "white"} : {}
 
     let total = Math.floor(data.length / PAGE_SIZE)
@@ -49,19 +50,28 @@ const Table = ({columns, data, mapper, onDoubleClick, selecting, onClick}) => {
                 </thead>
             }
             <tbody>
-            {data?.map((row, i) => showDataOnlyForPage(i) &&
-                <tr key={i}
-                    onDoubleClick={_ => handleDoubleClick(row)}
-                    onClick={_ => handleClick(i)}
-                    style={selectedRow === i ? selectedStyle : {}}
-                >
-                    {mapper(row)}
-                </tr>)}
-            {data.length === 0 && <tr>
-                <td colSpan={columns.length}>
-                    <div className="d-flex justify-content-center">Нет данных</div>
-                </td>
-            </tr>}
+            {
+                loading ? <tr>
+                    <td colSpan={columns.length}>
+                        <div className="d-flex justify-content-center">
+                            <Loading isLoading={true}/>
+                        </div>
+                    </td>
+                </tr> : <>
+                    {data?.map((row, i) => showDataOnlyForPage(i) &&
+                        <tr key={i}
+                            onDoubleClick={_ => handleDoubleClick(row)}
+                            onClick={_ => handleClick(i)}
+                            style={selectedRow === i ? selectedStyle : {}}
+                        >
+                            {mapper(row)}
+                        </tr>)}
+                    {data.length === 0 && <tr>
+                        <td colSpan={columns.length}>
+                            <div className="d-flex justify-content-center">Нет данных</div>
+                        </td>
+                    </tr>}</>
+            }
             </tbody>
 
         </table>

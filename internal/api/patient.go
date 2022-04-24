@@ -202,3 +202,32 @@ func (p *patientApi) NewVisit(w http.ResponseWriter, r *http.Request) error {
 	w.Write(resMarshal)
 	return nil
 }
+
+func (p *patientApi) NewProf(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	var newProf types.NewProf
+	err := json.NewDecoder(r.Body).Decode(&newProf)
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	val, err := c.Patient.NewProf(&newProf)
+	if err != nil {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}

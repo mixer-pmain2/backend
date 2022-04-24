@@ -1,10 +1,16 @@
 import React from "react";
+import {connect} from "react-redux";
 
+const HistoryUchet = () => {
 
-const Uchet =() => {
+}
+
+const Uchet = () => {
     return <div>
-        Uchet
+        <HistoryUchet/>
     </div>
 }
 
-export default Uchet
+export default connect(state => ({
+    patient: state.patient
+}))(Uchet)

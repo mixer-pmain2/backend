@@ -12,7 +12,7 @@ const LOADING_VISIT = "history_visit"
 const LOADING_HOSPITAL = "history_hospital"
 
 
-const HistoryVisit = ({patient}) => {
+const HistoryVisit = ({patient, loading}) => {
     const [selectRow, setSelectRow] = useState(patient?.visit?.[0])
     const mapper = (row) => {
         return <>
@@ -37,13 +37,14 @@ const HistoryVisit = ({patient}) => {
             columns={["Дата", "Врач", "Диагноз", "Причина"]}
             data={patient.visit || []}
             mapper={mapper}
+            loading={loading}
             selecting={true}
             onClick={setSelectRow}
         />
     </div>
 }
 
-const HistoryHospital = ({patient}) => {
+const HistoryHospital = ({patient, loading}) => {
     const [selectRow, setSelectRow] = useState(patient?.visit?.[0])
     const mapper = (row) => {
         return <>
@@ -72,6 +73,7 @@ const HistoryHospital = ({patient}) => {
             data={patient.hospital || []}
             mapper={mapper}
             selecting={true}
+            loading={loading}
             onClick={setSelectRow}
         />
 
@@ -79,20 +81,40 @@ const HistoryHospital = ({patient}) => {
 }
 
 const History = ({dispatch, patient}) => {
+    const [state, setState] = useState({
+        isLoadingVisit: false,
+        isLoadingHospital: false
+    })
 
     useEffect(() => {
         if (!patient?.visit) {
-            dispatch(appActions.loadingAdd(LOADING_VISIT))
+            // dispatch(appActions.loadingAdd(LOADING_VISIT))
+            setState({
+                ...state,
+                isLoadingVisit: true
+            })
             dispatch(patientActions.getHistoryVisits({id: patient.id}))
                 .finally(_ => {
-                    dispatch(appActions.loadingRemove(LOADING_VISIT))
+                    setState({
+                        ...state,
+                        isLoadingVisit: false
+                    })
+                    // dispatch(appActions.loadingRemove(LOADING_VISIT))
                 })
         }
         if (!patient?.hospital) {
-            dispatch(appActions.loadingAdd(LOADING_HOSPITAL))
+            // dispatch(appActions.loadingAdd(LOADING_HOSPITAL))
+            setState({
+                ...state,
+                isLoadingHospital: true
+            })
             dispatch(patientActions.getHistoryHospital({id: patient.id}))
                 .finally(_ => {
-                    dispatch(appActions.loadingRemove(LOADING_HOSPITAL))
+                    // dispatch(appActions.loadingRemove(LOADING_HOSPITAL))
+                    setState({
+                        ...state,
+                        isLoadingHospital: false
+                    })
                 })
         }
 
@@ -104,10 +126,10 @@ const History = ({dispatch, patient}) => {
 
     return <div>
         <div style={{marginBottom: 20}}>
-            <HistoryVisit patient={patient}/>
+            <HistoryVisit patient={patient} loading={state.isLoadingVisit}/>
         </div>
         <div>
-            <HistoryHospital patient={patient}/>
+            <HistoryHospital patient={patient} loading={state.isLoadingHospital}/>
         </div>
     </div>
 }

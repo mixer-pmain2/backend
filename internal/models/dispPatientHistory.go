@@ -22,7 +22,7 @@ type HistoryVisit struct {
 func (m *patientModel) HistoryVisits(id int) (*[]HistoryVisit, error) {
 	var data []HistoryVisit
 	sql := fmt.Sprintf(
-		`select v_n, dat, dokf, diag, diag_t, prich, sost, m1, m2 from find_disp(%v)
+		`select first 1000 v_n, dat, dokf, diag, diag_t, prich, sost, m1, m2 from find_disp(%v)
      order by dat DESC`, id)
 	INFO.Println(sql)
 	rows, err := m.DB.Query(sql)
