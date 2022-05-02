@@ -70,7 +70,7 @@ const HistoryHospital = ({patient, loading}) => {
         <span>Диагноз выписки </span><span title={selectRow?.diagEndS}>{shorty(selectRow?.diagEndS)}</span>
         <Table
             columns={["Дата поступления", "Дата выписки", "Отделение", "Диагноз поступления", "Диагноз выписки"]}
-            data={patient.hospital || []}
+            data={patient?.hospital || []}
             mapper={mapper}
             selecting={true}
             loading={loading}

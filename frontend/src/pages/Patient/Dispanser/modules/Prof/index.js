@@ -58,14 +58,8 @@ const Prof = ({dispatch, user, application}) => {
         apiPatient.newProf(form)
             .then(res => {
                 if (res?.success) {
-                    const loaderName = "upd_visit"
                     notifySuccess("Проф. осомтры записаны")
                     handleReset()
-                    dispatch(loadingAdd(loaderName))
-                    dispatch(getHistoryVisits({id: 306258, cache: false}))
-                        .finally(() => {
-                            dispatch(loadingRemove(loaderName))
-                        })
                     setState({
                         ...state,
                         error: ""

@@ -145,6 +145,9 @@ order by datp desc,  nz DESC`, patientId)
 			return nil, err
 		}
 
+		dateUchet, _ := time.Parse(time.RFC3339, r.Date)
+		r.Date = utils.ToDate(dateUchet)
+
 		data = append(data, r)
 	}
 
