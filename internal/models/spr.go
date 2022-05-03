@@ -184,3 +184,33 @@ func (m *SprModel) GetParams() (*[]ServiceM, error) {
 	return &data, nil
 
 }
+
+func (m *SprModel) GetSprReason() (*map[string]string, error) {
+	sql := fmt.Sprintf(`select kod1, na_me from spr_med where spr_nam = 'reg_reas1'
+union 
+select kod1, NA_ME from spr_med where spr_nam = 'exit_reas' and SUBSTR(kod1,1,1) = 'S' AND KOD2 = '1'`)
+	rows, err := m.DB.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	data := make(map[string]string, 0)
+	for rows.Next() {
+		var row struct {
+			name  string
+			value string
+		}
+		err = rows.Scan(&row.name, &row.value)
+		if err != nil {
+			return nil, err
+		}
+		row.name = strings.Trim(row.name, " ")
+		row.value = strings.Trim(row.value, " ")
+		row.value, err = utils.ToUTF8(row.value)
+		if err != nil {
+			return nil, err
+		}
+		data[row.name] = row.value
+	}
+	return &data, nil
+
+}

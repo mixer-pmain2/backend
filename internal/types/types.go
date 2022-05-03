@@ -42,6 +42,11 @@ type NewSRC struct {
 	Zakl      int    `json:"zakl"`
 }
 
+type NewRegister struct {
+	PatientId int    `json:"patientId"`
+	Reason    string `json:"reason"`
+}
+
 type HttpResponse struct {
 	Success bool   `json:"success"`
 	Error   int    `json:"error"`

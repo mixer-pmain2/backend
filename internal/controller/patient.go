@@ -68,7 +68,7 @@ func (p *patient) FindUchet(id int) (*[]models.FindUchetS, error) {
 		return item.(*[]models.FindUchetS), nil
 	}
 	model := models.Model.Patient
-	data, err := model.FindUchet(id)
+	data, err := model.FindUchet(id, 1000, 0)
 	if err != nil {
 		ERROR.Println(err.Error())
 		return nil, err
@@ -143,7 +143,9 @@ func (p *patient) NewVisit(visit *types.NewVisit) (int, error) {
 	}
 
 	//Обрезаем до 10, т.к. в посещениях длина диагноза 10
-	visit.Diagnose = visit.Diagnose[0:10]
+	if len(visit.Diagnose) > 10 {
+		visit.Diagnose = visit.Diagnose[0:10]
+	}
 
 	model = models.Model.Patient
 	_, err = model.NewVisit(*visit, tx)
@@ -203,6 +205,20 @@ func (p *patient) NewProf(visit *types.NewProf) (int, error) {
 	err = tx.Commit()
 	if err != nil {
 		return 22, err
+	}
+
+	return 0, nil
+}
+
+func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
+	pat, err := p.FindById(reg.PatientId)
+	if err != nil {
+		return 300, err
+	}
+	if reg.Reason == "001" {
+		if len(pat.Address) < 10 {
+			return 301, nil
+		}
 	}
 
 	return 0, nil

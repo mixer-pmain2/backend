@@ -110,9 +110,9 @@ type FindUchetS struct {
 	Section       int            `json:"section"`
 }
 
-func (m *patientModel) FindUchet(patientId int) (*[]FindUchetS, error) {
-	sql := fmt.Sprintf(`select nz, datp, m.categ, kat, rr, prich, diagt, diagts, trim(reg_doct), dock, uch from find_uchet_m(%v) m
-order by datp desc,  nz DESC`, patientId)
+func (m *patientModel) FindUchet(patientId, first, skip int) (*[]FindUchetS, error) {
+	sql := fmt.Sprintf(`select FIRST %v SKIP %v nz, datp, m.categ, kat, rr, prich, diagt, diagts, trim(reg_doct), dock, uch from find_uchet_m(%v) m
+order by datp desc,  nz DESC`, first, skip, patientId)
 	INFO.Println(sql)
 	rows, err := m.DB.Query(sql)
 	if err != nil {
@@ -155,36 +155,14 @@ order by datp desc,  nz DESC`, patientId)
 }
 
 func (m *patientModel) FindLastUchet(patientId int) (*FindUchetS, error) {
-	sqlQuery := fmt.Sprintf(`select First 1 nz, datp, m.categ, kat, rr, prich, diagt, diagts, trim(reg_doct), dock, uch from find_uchet_m(%v) m
-order by datp desc,  nz DESC`, patientId)
-	INFO.Println(sqlQuery)
-	row := m.DB.QueryRow(sqlQuery)
-	r := FindUchetS{}
-	err := row.Scan(&r.Id, &r.Date, &r.Category, &r.CategoryS, &r.Reason, &r.ReasonS, &r.Diagnose, &r.DiagnoseSNull, &r.DockId, &r.DockNameNull, &r.Section)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
+	data, err := m.FindUchet(patientId, 1, 0)
 	if err != nil {
 		return nil, err
 	}
-	r.CategoryS, err = utils.ToUTF8(r.CategoryS)
-	if err != nil {
-		return nil, err
-	}
-	r.ReasonS, err = utils.ToUTF8(strings.Trim(r.ReasonS, " "))
-	if err != nil {
-		return nil, err
-	}
-	r.Reason = strings.Trim(r.Reason, " ")
-	r.DiagnoseS = r.DiagnoseSNull.String
-	r.DiagnoseS, err = utils.ToUTF8(strings.Trim(r.DiagnoseS, " "))
-	if err != nil {
-		return nil, err
-	}
-	r.DockName = r.DockNameNull.String
-	r.DockName, err = utils.ToUTF8(strings.Trim(r.DockName, " "))
-	if err != nil {
-		return nil, err
+	res := *data
+	var r FindUchetS
+	if len(res) > 0 {
+		r = res[0]
 	}
 
 	return &r, nil

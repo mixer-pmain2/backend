@@ -59,6 +59,7 @@ func main() {
 	apiRouter.HandleFunc("/patient/find/", apperror.Middleware(apiHandlers.Patient.Find)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/hospital/", apperror.Middleware(apiHandlers.Patient.HistoryHospital)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/uchet/", apperror.Middleware(apiHandlers.Patient.FindUchet)).Methods(http.MethodGet, http.MethodOptions)
+	apiRouter.HandleFunc("/patient/{id:[0-9]*}/uchet/", apperror.Middleware(apiHandlers.Patient.NewReg)).Methods(http.MethodPost, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/visit/", apperror.Middleware(apiHandlers.Patient.HistoryVisits)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/visit/", apperror.Middleware(apiHandlers.Patient.NewVisit)).Methods(http.MethodPost, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/", apperror.Middleware(apiHandlers.Patient.Get)).Methods(http.MethodGet, http.MethodOptions)
@@ -72,6 +73,7 @@ func main() {
 	apiRouterNonAuth.HandleFunc("/spr/prava/", apperror.Middleware(apiHandlers.Spr.GetPrava)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouterNonAuth.HandleFunc("/spr/visit/", apperror.Middleware(apiHandlers.Spr.GetSprVisit)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouterNonAuth.HandleFunc("/spr/diag/", apperror.Middleware(apiHandlers.Spr.GetSprDiags)).Methods(http.MethodGet, http.MethodOptions)
+	apiRouterNonAuth.HandleFunc("/spr/reason/", apperror.Middleware(apiHandlers.Spr.GetSprReasons)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouterNonAuth.HandleFunc("/service/", apperror.Middleware(apiHandlers.Spr.GetParams)).Methods(http.MethodGet, http.MethodOptions)
 
 	webRouter := server.Router.PathPrefix("/").Subrouter()

@@ -108,6 +108,40 @@ func (p *patientApi) FindUchet(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (p *patientApi) NewReg(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return nil
+	}
+	var newReg types.NewRegister
+	err := json.NewDecoder(r.Body).Decode(&newReg)
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	val, err := c.Patient.NewReg(&newReg)
+	if err != nil {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+
+	marshal, err := json.Marshal(res)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, string(marshal))
+	return nil
+}
+
 func (p *patientApi) HistoryVisits(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)

@@ -92,3 +92,18 @@ func (s *sprApi) GetParams(w http.ResponseWriter, r *http.Request) error {
 	fmt.Fprintf(w, string(res))
 	return nil
 }
+
+func (s *sprApi) GetSprReasons(w http.ResponseWriter, r *http.Request) error {
+	c := controller.Init()
+	data, err := c.Spr.GetSprReason()
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
