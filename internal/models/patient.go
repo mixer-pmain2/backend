@@ -242,3 +242,77 @@ func (m *patientModel) NewProf(visit types.NewProf, tx *sql.Tx) (sql.Result, err
 
 	return result, nil
 }
+
+func (m *patientModel) GetCountJudgment(patientId int) (int, error) {
+	sql := fmt.Sprintf(`select count(*) from prinud_m
+where patient_id = %v
+and nom_z = (select max(nom_z) from prinud_m where patient_id = %v)
+and ((exit_date is null)or(exit_date < '01.01.1950'))`, patientId, patientId)
+	INFO.Println(sql)
+	row := m.DB.QueryRow(sql)
+	count := 0
+	err := row.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (m *patientModel) IsInHospital(patientId int) (bool, error) {
+	sqlQuery := fmt.Sprintf(`select count(*) from kart_m
+where patient_id = %v 
+and ((exit_date is null)or(exit_date = '30.12.1899'))`, patientId)
+	INFO.Println(sqlQuery)
+	row := m.DB.QueryRow(sqlQuery)
+	count := 0
+	err := row.Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (m *patientModel) GetCountRegDataInDate(patientId, section int, date time.Time) (int, error) {
+	d1 := utils.ToDate(date)
+	d2 := utils.ToDate(date.AddDate(0, 0, 1))
+	sqlQuery := fmt.Sprintf(`select count(*) from registrat_m 
+where patient_id = %v 
+and reg_date between '%s' and '%s'  
+and RTRIM(reg_reas) not in ('S011','P001','001') 
+and RTRIM(sec_tion) = %v`, patientId, d1, d2, section)
+	INFO.Println(sqlQuery)
+	row := m.DB.QueryRow(sqlQuery)
+	count := 0
+	err := row.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (m *patientModel) InsertReg(reg types.NewRegister, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`insert into registrat_m(
+PATIENT_ID, SEC_TION, REG_DATE,
+REG_DOCT, REG_REAS, CATEG_UCH,
+DIAGNOS, INS_WHO)
+values(%v, %v, '%s',
+		%v, '%s', %v,
+		'%s', %v)`,
+		reg.PatientId, reg.Section, reg.Date,
+		reg.DockId, reg.Reason, reg.Category,
+		reg.Diagnose, reg.DockId)
+
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) UpdPatientVisible(patientId, typeVisible int, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`update general set bl_group = %v where patient_id = %v`, typeVisible, patientId)
+
+	return tx.Exec(sqlQuery)
+}

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"fmt"
 	"pmain2/pkg/utils"
 	"strings"
@@ -50,16 +51,18 @@ func (m *patientModel) HistoryVisits(id int) (*[]HistoryVisit, error) {
 }
 
 type HistoryHospital struct {
-	Id            int    `json:"id"`
-	DateStart     string `json:"dateStart"`
-	DateEnd       string `json:"dateEnd"`
-	DiagStart     string `json:"diagStart"`
-	DiagEnd       string `json:"diagEnd"`
-	DiagStartS    string `json:"diagStartS"`
-	DiagEndS      string `json:"diagEndS"`
-	Otd           string `json:"otd"`
-	HistoryNumber int    `json:"historyNumber"`
-	Where         string `json:"where"`
+	Id            int            `json:"id"`
+	DateStart     string         `json:"dateStart"`
+	DateEnd       string         `json:"dateEnd"`
+	DateEndNull   sql.NullString `json:"-"`
+	DiagStart     string         `json:"diagStart"`
+	DiagEnd       string         `json:"diagEnd"`
+	DiagStartS    string         `json:"diagStartS"`
+	DiagEndS      string         `json:"diagEndS"`
+	DiagEndSNull  sql.NullString `json:"-"`
+	Otd           string         `json:"otd"`
+	HistoryNumber int            `json:"historyNumber"`
+	Where         string         `json:"where"`
 }
 
 func (m *patientModel) HistoryHospital(id int) (*[]HistoryHospital, error) {
@@ -72,14 +75,18 @@ func (m *patientModel) HistoryHospital(id int) (*[]HistoryHospital, error) {
 	}
 	for rows.Next() {
 		p := HistoryHospital{}
-		err = rows.Scan(&p.DateStart, &p.DateEnd, &p.DiagStart, &p.DiagEnd, &p.DiagStartS, &p.DiagEndS, &p.Otd, &p.HistoryNumber, &p.Where, &p.Id)
+		err = rows.Scan(&p.DateStart, &p.DateEndNull, &p.DiagStart, &p.DiagEnd, &p.DiagStartS, &p.DiagEndSNull, &p.Otd, &p.HistoryNumber, &p.Where, &p.Id)
 		dateStart, _ := time.Parse(time.RFC3339, p.DateStart)
 		p.DateStart = utils.ToDate(dateStart)
-		dateEnd, _ := time.Parse(time.RFC3339, p.DateEnd)
+		dateEnd, _ := time.Parse(time.RFC3339, p.DateEndNull.String)
 		p.DateEnd = utils.ToDate(dateEnd)
+		if p.DateEndNull.String == "" {
+			p.DateEnd = ""
+		}
 		p.DiagStart = strings.Trim(p.DiagStart, " ")
 		p.DiagEnd = strings.Trim(p.DiagEnd, " ")
 		p.DiagStartS, _ = utils.ToUTF8(strings.Trim(p.DiagStartS, " "))
+		p.DiagEndS = p.DiagEndSNull.String
 		p.DiagEndS, _ = utils.ToUTF8(strings.Trim(p.DiagEndS, " "))
 		p.Where, _ = utils.ToUTF8(strings.Trim(p.Where, " "))
 		if err != nil {

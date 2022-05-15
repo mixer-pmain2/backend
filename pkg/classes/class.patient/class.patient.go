@@ -7,6 +7,10 @@ type PatientClass struct {
 	LastReg  models.FindUchetS
 }
 
+func Init() {
+
+}
+
 func (p *PatientClass) Get(id int) {
 
 }

@@ -43,8 +43,14 @@ type NewSRC struct {
 }
 
 type NewRegister struct {
-	PatientId int    `json:"patientId"`
-	Reason    string `json:"reason"`
+	PatientId  int    `json:"patientId"`
+	Reason     string `json:"reason"`
+	ExitReason string `json:"exitReason"`
+	Section    int    `json:"section"`
+	Category   int    `json:"category"`
+	Diagnose   string `json:"diagnose"`
+	Date       string `json:"date"`
+	DockId     int    `json:"dockId"`
 }
 
 type HttpResponse struct {

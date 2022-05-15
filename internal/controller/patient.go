@@ -61,14 +61,30 @@ func (p *patient) FindById(id int) (*models.Patient, error) {
 	return data, nil
 }
 
-func (p *patient) FindUchet(id int) (*[]models.FindUchetS, error) {
+func (p *patient) FindUchet(id int, isCache bool) (*[]models.FindUchetS, error) {
 	cacheName := fmt.Sprintf("find_uchet_%v", id)
 	item, ok := cache.AppCache.Get(cacheName)
-	if ok {
+	if ok && isCache {
 		return item.(*[]models.FindUchetS), nil
 	}
 	model := models.Model.Patient
 	data, err := model.FindUchet(id, 1000, 0)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) FindLastUchet(id int, isCache bool) (*models.FindUchetS, error) {
+	cacheName := fmt.Sprintf("find_last_uchet_%v", id)
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok && isCache {
+		return item.(*models.FindUchetS), nil
+	}
+	model := models.Model.Patient
+	data, err := model.FindLastUchet(id)
 	if err != nil {
 		ERROR.Println(err.Error())
 		return nil, err
@@ -119,7 +135,7 @@ func (p *patient) NewVisit(visit *types.NewVisit) (int, error) {
 	}
 
 	//-проверить что пациент не мертв или это работа с документами
-	if (lastUchet != nil && lastUchet.Reason == consts.REAS_DEAD) && visit.Visit&consts.VISIT_WORK_WITH_DOCUMENTS == 0 {
+	if (lastUchet != nil && lastUchet.Reason == consts.EXIT_REAS_DEAD) && visit.Visit&consts.VISIT_WORK_WITH_DOCUMENTS == 0 {
 		return 101, nil
 	}
 
@@ -213,12 +229,133 @@ func (p *patient) NewProf(visit *types.NewProf) (int, error) {
 func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 	pat, err := p.FindById(reg.PatientId)
 	if err != nil {
-		return 300, err
+		return -1, err
 	}
+
+	sprModel := models.Model.Spr
+	patientModel := models.Model.Patient
+
 	if reg.Reason == "001" {
 		if len(pat.Address) < 10 {
 			return 301, nil
 		}
+	}
+
+	lastReg, err := p.FindLastUchet(reg.PatientId, false)
+	if err != nil {
+		return -1, err
+	}
+
+	isClose, err := sprModel.IsClosedSection(lastReg.Section)
+	if err != nil {
+		return -1, err
+	}
+	if isClose {
+		return 303, nil
+	}
+
+	countJudgment, err := patientModel.GetCountJudgment(reg.PatientId)
+	if err != nil {
+		return -1, err
+	}
+	if reg.Category == 7 && countJudgment == 0 {
+		return 304, nil
+	}
+
+	if lastReg.Reason == consts.EXIT_REAS_DEAD {
+		return 305, nil
+	}
+
+	if reg.Section < 10 && reg.Reason == consts.REAS_NEW {
+		return 306, nil
+	}
+
+	if (reg.Category == 7 || reg.Category == 8) && (reg.Section < 18 || reg.Section > 19) && reg.Section < 130 {
+		return 307, nil
+	}
+
+	if reg.Reason == consts.REAS_SWITCH_CATEG_TO_AMBULANC && reg.Category == 10 {
+		return 308, nil
+	}
+
+	if reg.Reason == consts.REAS_SWITCH_CATEG_TO_CONSULTANT && reg.Category != 10 {
+		return 309, nil
+	}
+
+	if reg.Reason == consts.REAS_SWITCH_CATEG_GROUP && (reg.Category == 10 || reg.Category == lastReg.Category) {
+		return 310, nil
+	}
+
+	if (reg.Reason == consts.REAS_SWITCH_CATEG_TO_AMBULANC && lastReg.Category > 0 && lastReg.Category < 9) ||
+		(reg.Reason == consts.REAS_SWITCH_CATEG_TO_CONSULTANT && lastReg.Category == 10) {
+		return 311, nil
+	}
+
+	if reg.Reason == consts.REAS_EXIT {
+		if reg.ExitReason == "" {
+			return 316, nil
+		}
+		reg.Reason = reg.ExitReason
+	}
+
+	if reg.Reason == consts.EXIT_REAS_NO_PSIH_DIAG {
+		//TODO для всех prava <> 2147483647
+		return 312, nil
+	}
+
+	isClose, err = sprModel.IsClosedSection(reg.Section)
+	if err != nil {
+		return -1, err
+	}
+	if isClose {
+		return 313, nil
+	}
+
+	if reg.Reason[0] == 'S' {
+		inHospital, err := patientModel.IsInHospital(reg.PatientId)
+		if err != nil {
+			return -1, err
+		}
+		if inHospital {
+			return 314, nil
+		}
+	}
+
+	regDate, err := time.Parse("2006-01-02", reg.Date)
+	if err != nil {
+		return -1, err
+	}
+	countReg, err := patientModel.GetCountRegDataInDate(reg.PatientId, reg.Section, regDate)
+	if err != nil {
+		return -1, err
+	}
+	if countReg > 0 {
+		return 315, nil
+	}
+
+	conn, err := database.Connect()
+	if err != nil {
+		return 20, err
+	}
+	tx, err := conn.DB.Begin()
+	if err != nil {
+		return 21, err
+	}
+
+	defer tx.Rollback()
+	_, err = patientModel.InsertReg(*reg, tx)
+	if err != nil {
+		return 350, err
+	}
+	if reg.Reason == consts.REAS_NEW {
+		_, err = patientModel.UpdPatientVisible(reg.PatientId, 0, tx)
+		if err != nil {
+			return 351, err
+		}
+	}
+	err = tx.Commit()
+	if err != nil {
+		return 350, err
 	}
 
 	return 0, nil

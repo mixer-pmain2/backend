@@ -4,6 +4,7 @@ import (
 	"pmain2/internal/database"
 	"pmain2/internal/models"
 	"pmain2/pkg/cache"
+	"pmain2/pkg/utils"
 	"time"
 )
 
@@ -133,6 +134,15 @@ func (s *spr) GetParams() (*[]models.ServiceM, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	*data = append(*data, []models.ServiceM{{
+		Param:  "current_date",
+		ParamS: utils.ToDate(time.Now()),
+	}, {
+		Param:  "registrat_min_date",
+		ParamS: utils.ToDate(time.Date(time.Now().Year(), 1, 1, 0, 0, 0, 0, time.Local)),
+	},
+	}...)
 
 	cache.AppCache.Set(cacheName, data, time.Minute*10)
 	return data, nil

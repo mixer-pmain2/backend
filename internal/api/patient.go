@@ -88,8 +88,13 @@ func (p *patientApi) FindUchet(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
 	c := controller.Init()
-	data, err := c.Patient.FindUchet(id)
+	data, err := c.Patient.FindUchet(id, isCache)
 	if err != nil {
 		return err
 	}
@@ -119,6 +124,12 @@ func (p *patientApi) NewReg(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	marshal, err := json.Marshal(newReg)
+	if err != nil {
+		return err
+	}
+	INFO.Println(string(marshal))
+
 	c := controller.Init()
 	val, err := c.Patient.NewReg(&newReg)
 	if err != nil {
@@ -131,13 +142,15 @@ func (p *patientApi) NewReg(w http.ResponseWriter, r *http.Request) error {
 		res.Success = false
 		res.Error = val
 		res.Message = consts.ArrErrors[val]
+		ERROR.Println(res)
 	}
 
-	marshal, err := json.Marshal(res)
+	marshal, err = json.Marshal(res)
 	if err != nil {
 		return err
 	}
 
+	INFO.Println(string(marshal))
 	fmt.Fprintf(w, string(marshal))
 	return nil
 }

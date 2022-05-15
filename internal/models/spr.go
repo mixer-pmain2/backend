@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"pmain2/pkg/utils"
 	"strings"
+	"time"
 )
 
 type SprModel struct {
@@ -24,6 +25,7 @@ func (m *SprModel) GetPodr() (*map[int]string, error) {
 	sql := fmt.Sprintf(`SELECT MASKA1, NA_ME 
 FROM SPR_PRAVA svn 
 WHERE KOD1 = 1 AND MASKA1 > 0 and visible = 1`)
+	INFO.Println(sql)
 	rows, err := m.DB.Query(sql)
 	if err != nil {
 		return nil, err
@@ -57,6 +59,7 @@ func (m *SprModel) GetPrava() (*[]PravaDict, error) {
 FROM SPR_PRAVA sp  
 WHERE KOD1 = 2 and visible = 1
 order by maska1, maska2`)
+	INFO.Println(sql)
 	rows, err := m.DB.Query(sql)
 	if err != nil {
 		return nil, err
@@ -87,6 +90,7 @@ func (m *SprModel) GetSprVisit() (*map[int]string, error) {
 	sql := fmt.Sprintf(`SELECT MASKA1, NA_ME 
 FROM SPR_VISIT_N svn 
 WHERE KOD1 = 3 AND MASKA1 > 0`)
+	INFO.Println(sql)
 	rows, err := m.DB.Query(sql)
 	if err != nil {
 		return nil, err
@@ -118,6 +122,7 @@ type DiagM struct {
 
 func (m *SprModel) GetDiags(diag string) (*[]DiagM, error) {
 	sql := fmt.Sprintf(`SELECT kod1, kod2, nam, uroven FROM diag1m where kod1 = '%s'`, diag)
+	INFO.Println(sql)
 	rows, err := m.DB.Query(sql)
 	if err != nil {
 		return nil, err
@@ -154,6 +159,7 @@ type ServiceM struct {
 
 func (m *SprModel) GetParams() (*[]ServiceM, error) {
 	sql := fmt.Sprintf(`select param, PARAM_I, PARAM_D, PARAM_S, KOMMENT, DN, DK from servis`)
+	INFO.Println(sql)
 	rows, err := m.DB.Query(sql)
 	if err != nil {
 		return nil, err
@@ -189,6 +195,7 @@ func (m *SprModel) GetSprReason() (*map[string]string, error) {
 	sql := fmt.Sprintf(`select kod1, na_me from spr_med where spr_nam = 'reg_reas1'
 union 
 select kod1, NA_ME from spr_med where spr_nam = 'exit_reas' and SUBSTR(kod1,1,1) = 'S' AND KOD2 = '1'`)
+	INFO.Println(sql)
 	rows, err := m.DB.Query(sql)
 	if err != nil {
 		return nil, err
@@ -212,5 +219,35 @@ select kod1, NA_ME from spr_med where spr_nam = 'exit_reas' and SUBSTR(kod1,1,1)
 		data[row.name] = row.value
 	}
 	return &data, nil
+
+}
+
+func (m *SprModel) IsClosedSection(section int) (bool, error) {
+	sqlQuery := fmt.Sprintf(`select First 1 CLOSED_DAT from closed_uch where uch = %v`, section)
+	INFO.Println(sqlQuery)
+	row := m.DB.QueryRow(sqlQuery)
+
+	isClose := false
+	var _closeDate string
+	err := row.Scan(&_closeDate)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if _closeDate == "" {
+		return false, nil
+	}
+	closeDate, err := time.Parse(time.RFC3339, _closeDate)
+	if err != nil {
+		return false, err
+	}
+	curDate := time.Now()
+	if curDate.Sub(closeDate) > 0 {
+		isClose = true
+	}
+
+	return isClose, nil
 
 }
