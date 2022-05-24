@@ -1,8 +1,8 @@
 /
+/signin
 /profile
 /disp
-/disp/patient/find
-/disp/patient/visit
-/disp/patient/{id}
+/patient/find
+/patient/{id}
 /admin
 /test

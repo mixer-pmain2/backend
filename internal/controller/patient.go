@@ -95,9 +95,11 @@ func (p *patient) FindLastUchet(id int, isCache bool) (*models.FindUchetS, error
 
 func (p *patient) HistoryVisits(id int, isCache bool) (*[]models.HistoryVisit, error) {
 	cacheName := fmt.Sprintf("disp_history_Visit_%v", id)
-	item, ok := cache.AppCache.Get(cacheName)
-	if ok && isCache {
-		return item.(*[]models.HistoryVisit), nil
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]models.HistoryVisit), nil
+		}
 	}
 	model := models.Model.Patient
 	data, err := model.HistoryVisits(id)
