@@ -43,8 +43,10 @@ func init() {
 }
 
 func main() {
+	INFO.Print("Star app\n")
 	apiHandlers := api.Init()
 
+	INFO.Println("Init handlers")
 	server := server.Create(config.AppConfig)
 	apiRouter := server.Router.PathPrefix("/api/v0").Subrouter()
 	apiRouter.Use(middleware.CORS)
@@ -60,8 +62,13 @@ func main() {
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/hospital/", apperror.Middleware(apiHandlers.Patient.HistoryHospital)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/uchet/", apperror.Middleware(apiHandlers.Patient.FindUchet)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/uchet/", apperror.Middleware(apiHandlers.Patient.NewReg)).Methods(http.MethodPost, http.MethodOptions)
+	apiRouter.HandleFunc("/patient/{id:[0-9]*}/uchet/transfer/", apperror.Middleware(apiHandlers.Patient.NewRegTransfer)).Methods(http.MethodPost, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/visit/", apperror.Middleware(apiHandlers.Patient.HistoryVisits)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/visit/", apperror.Middleware(apiHandlers.Patient.NewVisit)).Methods(http.MethodPost, http.MethodOptions)
+	apiRouter.HandleFunc("/patient/{id:[0-9]*}/sindrom/", apperror.Middleware(apiHandlers.Patient.GetSindrom)).Methods(http.MethodGet, http.MethodOptions)
+	apiRouter.HandleFunc("/patient/{id:[0-9]*}/sindrom/", apperror.Middleware(apiHandlers.Patient.NewSindrom)).Methods(http.MethodPost, http.MethodOptions)
+	apiRouter.HandleFunc("/patient/{id:[0-9]*}/sindrom/", apperror.Middleware(apiHandlers.Patient.RemoveSindrom)).Methods(http.MethodDelete, http.MethodOptions)
+	apiRouter.HandleFunc("/patient/{id:[0-9]*}/invalid/", apperror.Middleware(apiHandlers.Patient.FindInvalid)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/", apperror.Middleware(apiHandlers.Patient.Get)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/prof/", apperror.Middleware(apiHandlers.Patient.NewProf)).Methods(http.MethodPost, http.MethodOptions)
 
@@ -82,8 +89,6 @@ func main() {
 
 	web.RoutesFrontend(webRouter, web.IndexServe)
 
-	INFO.Printf("Starting server\n")
-
 	go func() {
 		err := server.Run()
 		if err != nil {
@@ -95,5 +100,5 @@ func main() {
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
-	INFO.Println("Stop server")
+	INFO.Println("Stop app")
 }

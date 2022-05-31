@@ -316,3 +316,73 @@ func (m *patientModel) UpdPatientVisible(patientId, typeVisible int, tx *sql.Tx)
 
 	return tx.Exec(sqlQuery)
 }
+
+func (m *patientModel) NewSindrom(sindrom types.Sindrom, tx *sql.Tx) (sql.Result, error) {
+	sql := fmt.Sprintf(`INSERT INTO SINDROM (patient_id, diag, ins_date, ins_dock) 
+VALUES (%v, '%s', '%s', %v)`,
+		sindrom.PatientId, sindrom.Diagnose,
+		time.Now().Format("2006-01-02"), sindrom.DoctId,
+	)
+	INFO.Println(sql)
+	result, err := tx.Exec(sql)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (m *patientModel) RemoveSindrom(sindrom types.Sindrom, tx *sql.Tx) (sql.Result, error) {
+	sql := fmt.Sprintf(`delete from SINDROM where nom_z = %v`,
+		sindrom.Id,
+	)
+	INFO.Println(sql)
+	result, err := tx.Exec(sql)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+type FindInvalid struct {
+	DateBegin  string `json:"dateBegin"`
+	KindS      string `json:"kindS"`
+	ReasonS    string `json:"reasonS"`
+	DateChange string `json:"dateChange"`
+	DateEnd    string `json:"dateEnd"`
+	Id         int    `json:"id"`
+}
+
+func (m *patientModel) FindInvalid(patientId int) (*[]FindInvalid, error) {
+	sqlQuery := fmt.Sprintf(`select a.inv_begin, (select na_me from spr_visit_n where kod2 = a.inv_kind and kod1 = 6) as inv_kind,
+(select na_me from spr_visit_n where kod2 = a.inv_reas and kod1 = 4) as inv_reas, a.inv_change, a.inv_end, a.nom_z
+from invalid a where a.patient_id = %v
+order by inv_begin DESC`, patientId)
+	INFO.Println(sqlQuery)
+	rows, err := m.DB.Query(sqlQuery)
+	if err != nil {
+		return nil, err
+	}
+	var data []FindInvalid
+	for rows.Next() {
+		r := FindInvalid{}
+		var reason sql.NullString
+		err = rows.Scan(&r.DateBegin, &r.KindS, &reason, &r.DateChange, &r.DateEnd, &r.Id)
+		if err != nil {
+			return nil, err
+		}
+		r.ReasonS = reason.String
+		r.KindS, _ = utils.ToUTF8(strings.Trim(r.KindS, " "))
+		r.ReasonS, _ = utils.ToUTF8(strings.Trim(r.ReasonS, " "))
+		date, _ := time.Parse(time.RFC3339, r.DateBegin)
+		r.DateBegin = utils.ToDate(date)
+		date, _ = time.Parse(time.RFC3339, r.DateChange)
+		r.DateChange = utils.ToDate(date)
+		date, _ = time.Parse(time.RFC3339, r.DateEnd)
+		r.DateEnd = utils.ToDate(date)
+		data = append(data, r)
+	}
+
+	return &data, nil
+}

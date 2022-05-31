@@ -134,3 +134,41 @@ order by ds.date_add`, patientId, podr)
 	return &data, nil
 
 }
+
+type HistorySindrom struct {
+	Id        int    `json:"id"`
+	Diagnose  string `json:"diagnose"`
+	DiagnoseT string `json:"diagnoseT"`
+	Date      string `json:"date"`
+	DoctName  string `json:"doctName"`
+}
+
+func (m *patientModel) HistorySindrom(patientId int) (*[]HistorySindrom, error) {
+	var data []HistorySindrom
+	sql := fmt.Sprintf(`select a.nom_z, a.diag, a.ins_date, b.nam, c.fio from sindrom a, diag1m b, spr_doct c
+where a.patient_id = %v and
+b.kod2 = a.diag and
+c.kod_dock_i = a.ins_dock
+order by 1`, patientId)
+	INFO.Println(sql)
+	rows, err := m.DB.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		row := HistorySindrom{}
+		err = rows.Scan(&row.Id, &row.Diagnose, &row.Date, &row.DiagnoseT, &row.DoctName)
+		if err != nil {
+			return nil, err
+		}
+		row.Diagnose, _ = utils.ToUTF8(strings.Trim(row.Diagnose, " "))
+		row.DiagnoseT, _ = utils.ToUTF8(strings.Trim(row.DiagnoseT, " "))
+		row.DoctName, _ = utils.ToUTF8(strings.Trim(row.DoctName, " "))
+		date, _ := time.Parse(time.RFC3339, row.Date)
+		row.Date = utils.ToDate(date)
+		data = append(data, row)
+	}
+
+	return &data, nil
+
+}

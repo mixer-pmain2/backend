@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"pmain2/internal/consts"
@@ -89,7 +90,7 @@ func (p *patient) FindLastUchet(id int, isCache bool) (*models.FindUchetS, error
 		ERROR.Println(err.Error())
 		return nil, err
 	}
-	cache.AppCache.Set(cacheName, data, 0)
+	cache.AppCache.Set(cacheName, data, 30)
 	return data, nil
 }
 
@@ -256,6 +257,18 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 		return 303, nil
 	}
 
+	if reg.Diagnose == "" {
+		reg.Diagnose = lastReg.Diagnose
+	}
+
+	if reg.Section == 0 {
+		reg.Section = lastReg.Section
+	}
+
+	if reg.Category == 0 {
+		reg.Category = lastReg.Category
+	}
+
 	countJudgment, err := patientModel.GetCountJudgment(reg.PatientId)
 	if err != nil {
 		return -1, err
@@ -335,6 +348,15 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 		return 315, nil
 	}
 
+	lastRegDate, err := time.Parse("2006-01-02", lastReg.Date)
+	if err != nil {
+		return -1, err
+	}
+
+	if lastRegDate.Sub(regDate) > 0 {
+		return 360, nil
+	}
+
 	conn, err := database.Connect()
 	if err != nil {
 		return 20, err
@@ -361,4 +383,236 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 	}
 
 	return 0, nil
+}
+
+func (p *patient) NewRegisterTransfer(reg *types.NewRegisterTransfer) (int, error) {
+	//pat, err := p.FindById(reg.PatientId)
+	//if err != nil {
+	//	return -1, err
+	//}
+	sprModel := models.Model.Spr
+	patientModel := models.Model.Patient
+
+	lastReg, err := p.FindLastUchet(reg.PatientId, false)
+	if err != nil {
+		return -1, err
+	}
+
+	isClose, err := sprModel.IsClosedSection(lastReg.Section)
+	if err != nil {
+		return -1, err
+	}
+	if isClose {
+		return 303, nil
+	}
+
+	isClose, err = sprModel.IsClosedSection(reg.Section)
+	if err != nil {
+		return -1, err
+	}
+	if isClose {
+		return 303, nil
+	}
+
+	if ((lastReg.Section == 19 && reg.Section == 18) || (lastReg.Section == 18 && reg.Section == 19)) && reg.Category < 7 {
+		return 370, nil
+	}
+	if ((reg.Section == 18) || (reg.Section == 19)) && reg.Category < 7 {
+		return 370, nil
+	}
+	if ((lastReg.Section == 18) || (lastReg.Section == 19)) && reg.Category > 6 {
+		return 370, nil
+	}
+
+	reasonPrev := consts.REAS_FROM
+	reasonNext := consts.REAS_TO
+
+	if (lastReg.Section == 481 && reg.Section == 480) ||
+		(lastReg.Section == 591 && reg.Section == 590) ||
+		(lastReg.Section == 661 && reg.Section == 660) {
+		reasonPrev = consts.REAS_FROM
+		reasonNext = consts.REAS_TO
+	} else {
+		if lastReg.Section >= 400 && reg.Section < 400 {
+			reasonPrev = consts.EXIT_REAS_EXIT
+			reasonNext = consts.REAS_NEW
+		}
+		if lastReg.Section < 400 && reg.Section >= 400 {
+			reasonPrev = consts.EXIT_REAS_EXIT
+			reasonNext = consts.REAS_NEW
+		}
+	}
+	regDate, err := time.Parse("2006-01-02", reg.Date)
+	if err != nil {
+		return -1, err
+	}
+
+	lastRegDate, err := time.Parse("2006-01-02", lastReg.Date)
+	if err != nil {
+		return -1, err
+	}
+
+	if lastRegDate.Sub(regDate) > 0 {
+		return 360, nil
+	}
+
+	conn, err := database.Connect()
+	if err != nil {
+		return 20, err
+	}
+	tx, err := conn.DB.Begin()
+	if err != nil {
+		return 21, err
+	}
+
+	defer tx.Rollback()
+	if err != nil {
+		return -1, err
+	}
+	regPrev := types.NewRegister{
+		PatientId:  reg.PatientId,
+		Reason:     reasonPrev,
+		ExitReason: "",
+		Section:    lastReg.Section,
+		Category:   lastReg.Category,
+		Diagnose:   lastReg.Diagnose,
+		Date:       reg.Date,
+		DockId:     reg.DockId,
+	}
+	_, err = patientModel.InsertReg(regPrev, tx)
+	if err != nil {
+		return 350, err
+	}
+	regNext := types.NewRegister{
+		PatientId:  reg.PatientId,
+		Reason:     reasonNext,
+		ExitReason: "",
+		Section:    reg.Section,
+		Category:   reg.Category,
+		Diagnose:   lastReg.Diagnose,
+		Date:       reg.Date,
+		DockId:     reg.DockId,
+	}
+	_, err = patientModel.InsertReg(regNext, tx)
+	if err != nil {
+		return 350, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return 350, err
+	}
+
+	return 0, nil
+}
+
+func (p *patient) HistorySindrom(id int, isCache bool) (*[]models.HistorySindrom, error) {
+	cacheName := fmt.Sprintf("disp_sindrom_%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]models.HistorySindrom), nil
+		}
+	}
+	model := models.Model.Patient
+	data, err := model.HistorySindrom(id)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) NewSindrom(sindrom *types.Sindrom) (int, error) {
+
+	conn, err := database.Connect()
+	if err != nil {
+		return 20, err
+	}
+	tx, err := conn.DB.Begin()
+	if err != nil {
+		return 21, err
+	}
+
+	model := models.Model.Patient
+
+	history, err := model.HistorySindrom(sindrom.PatientId)
+	if err != nil {
+		return -1, err
+	}
+
+	isSindrom := strings.Contains(sindrom.Diagnose, "F")
+
+	count := 0
+	for _, row := range *history {
+		isSindromRow := strings.Contains(row.Diagnose, "F")
+		if (isSindrom && isSindromRow) || (!isSindrom && !isSindromRow) {
+			count += 1
+		}
+	}
+
+	if isSindrom && count >= 4 {
+		return 380, nil
+	}
+	if !isSindrom && count >= 4 {
+		return 381, nil
+	}
+
+	_, err = model.NewSindrom(*sindrom, tx)
+	if err != nil {
+		tx.Rollback()
+		return 200, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
+	}
+
+	return 0, nil
+}
+
+func (p *patient) RemoveSindrom(sindrom *types.Sindrom) (int, error) {
+
+	conn, err := database.Connect()
+	if err != nil {
+		return 20, err
+	}
+	tx, err := conn.DB.Begin()
+	if err != nil {
+		return 21, err
+	}
+
+	model := models.Model.Patient
+
+	_, err = model.RemoveSindrom(*sindrom, tx)
+	if err != nil {
+		tx.Rollback()
+		return 200, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
+	}
+
+	return 0, nil
+}
+
+func (p *patient) FindInvalid(id int, isCache bool) (*[]models.FindInvalid, error) {
+	cacheName := fmt.Sprintf("find_invalid_%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]models.FindInvalid), nil
+		}
+	}
+	model := models.Model.Patient
+	data, err := model.FindInvalid(id)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
 }

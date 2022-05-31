@@ -8,6 +8,7 @@ const (
 	REAS_SWITCH_CATEG_TO_CONSULTANT = "P003"
 	REAS_SWITCH_CATEG_GROUP         = "P004"
 	REAS_EXIT                       = "005"
+	EXIT_REAS_EXIT                  = "S002"
 	EXIT_REAS_DEAD                  = "S008"
 	EXIT_REAS_NO_PSIH_DIAG          = "S009"
 )
@@ -18,6 +19,8 @@ const (
 
 var ArrErrors = map[int]string{
 	0: "Успешно",
+
+	10: "Пациент не найден",
 
 	20: "Ошибка подключения к базе",
 	21: "Ошибка транзации",
@@ -52,4 +55,12 @@ var ArrErrors = map[int]string{
 
 	350: "Ошибка записи учета",
 	351: "Не удалось обновить видимость пациента",
+	360: "Не допустимая дата",
+
+	//uchet transfer
+	370: "Недопустимая категория на участке",
+
+	//sindrom
+	380: "Ошибка добавления диагноза синдрома",
+	381: "Ошибка добавления соматического диагноза",
 }

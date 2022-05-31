@@ -155,6 +155,48 @@ func (p *patientApi) NewReg(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (p *patientApi) NewRegTransfer(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return nil
+	}
+	var newReg types.NewRegisterTransfer
+	err := json.NewDecoder(r.Body).Decode(&newReg)
+	if err != nil {
+		return err
+	}
+
+	marshal, err := json.Marshal(newReg)
+	if err != nil {
+		return err
+	}
+	INFO.Println(string(marshal))
+
+	c := controller.Init()
+	val, err := c.Patient.NewRegisterTransfer(&newReg)
+	if err != nil {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+		ERROR.Println(res)
+	}
+
+	marshal, err = json.Marshal(res)
+	if err != nil {
+		return err
+	}
+
+	INFO.Println(string(marshal))
+	fmt.Fprintf(w, string(marshal))
+	return nil
+}
+
 func (p *patientApi) HistoryVisits(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -275,6 +317,120 @@ func (p *patientApi) NewProf(w http.ResponseWriter, r *http.Request) error {
 		res.Message = consts.ArrErrors[val]
 	}
 	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) GetSindrom(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		return err
+	}
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.HistorySindrom(id, isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) NewSindrom(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	var newSindrom types.Sindrom
+	err := json.NewDecoder(r.Body).Decode(&newSindrom)
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	val, err := c.Patient.NewSindrom(&newSindrom)
+	if err != nil {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) RemoveSindrom(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	var sindrom types.Sindrom
+	err := json.NewDecoder(r.Body).Decode(&sindrom)
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	val, err := c.Patient.RemoveSindrom(&sindrom)
+	if err != nil {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) FindInvalid(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		return err
+	}
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.FindInvalid(id, isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
 	w.Write(resMarshal)
 	return nil
 }

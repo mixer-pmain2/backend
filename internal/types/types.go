@@ -34,6 +34,13 @@ type NewProf struct {
 	Home   bool   `json:"home"`
 }
 
+type Sindrom struct {
+	Id        int    `json:"id"`
+	PatientId int    `json:"patientId"`
+	Diagnose  string `json:"diagnose"`
+	DoctId    int    `json:"doctId"`
+}
+
 type NewSRC struct {
 	PatientId int    `json:"patientId"`
 	DateAdd   string `json:"dateAdd"`
@@ -51,6 +58,13 @@ type NewRegister struct {
 	Diagnose   string `json:"diagnose"`
 	Date       string `json:"date"`
 	DockId     int    `json:"dockId"`
+}
+type NewRegisterTransfer struct {
+	PatientId int    `json:"patientId"`
+	Category  int    `json:"category"`
+	Section   int    `json:"section"`
+	Date      string `json:"date"`
+	DockId    int    `json:"dockId"`
 }
 
 type HttpResponse struct {
