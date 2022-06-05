@@ -23,12 +23,71 @@ func initPatientController() *patient {
 	return &patient{}
 }
 
-func (p *patient) FindByFio(lname, fname, sname string) (*[]models.Patient, error) {
+func (p *patient) New(newPatient *types.NewPatient) (int, error, *[]types.Patient) {
+	model := models.Model.Patient
+
+	conn, err := database.Connect()
+	if err != nil {
+		return 20, err, nil
+	}
+	tx, err := conn.DB.Begin()
+	if err != nil {
+		return 21, err, nil
+	}
+
+	newPatient.Lname, _ = utils.ToWin1251(strings.ToUpper(newPatient.Lname))
+	newPatient.Fname, _ = utils.ToWin1251(strings.ToUpper(newPatient.Fname))
+	newPatient.Sname, _ = utils.ToWin1251(strings.ToUpper(newPatient.Sname))
+	newPatient.Sex, _ = utils.ToWin1251(strings.ToUpper(newPatient.Sex))
+
+	if newPatient.IsAnonim {
+		newPatient.Lname = "-" + strings.Trim(newPatient.Lname, "-")
+	}
+
+	defer tx.Rollback()
+	model = models.Model.Patient
+	if !newPatient.IsForced {
+		found, err := model.FindByFIO(newPatient.Lname, newPatient.Fname, newPatient.Sname)
+		if err != nil {
+			return -1, err, nil
+		}
+		if len(*found) > 0 {
+			return 0, nil, found
+		}
+	}
+
+	id, err := model.GetMaxPatientId()
+	if err != nil {
+		return -1, err, nil
+	}
+	newPatient.PatientId = id + 1
+	_, err = model.New(newPatient, tx)
+	if err != nil {
+		return -1, err, nil
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err, nil
+	}
+
+	d, err := p.FindById(newPatient.PatientId, false)
+	if err != nil {
+		return 51, err, nil
+	}
+
+	data := make([]types.Patient, 0)
+	data = append(data, *d)
+
+	return 0, nil, &data
+}
+
+func (p *patient) FindByFio(lname, fname, sname string) (*[]types.Patient, error) {
 	cacheName := lname + " " + fname + " " + sname
 
 	item, ok := cachePat.Get(cacheName)
 	if ok {
-		res := item.(*[]models.Patient)
+		res := item.(*[]types.Patient)
 		return res, nil
 	}
 
@@ -45,7 +104,13 @@ func (p *patient) FindByFio(lname, fname, sname string) (*[]models.Patient, erro
 	return data, nil
 }
 
-func (p *patient) FindById(id int) (*models.Patient, error) {
+func (p *patient) FindById(id int64, isCache bool) (*types.Patient, error) {
+	cacheName := fmt.Sprintf("patient_id_%v", id)
+
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok && isCache {
+		return item.(*types.Patient), nil
+	}
 
 	conn, err := database.Connect()
 	if err != nil {
@@ -62,7 +127,7 @@ func (p *patient) FindById(id int) (*models.Patient, error) {
 	return data, nil
 }
 
-func (p *patient) FindUchet(id int, isCache bool) (*[]models.FindUchetS, error) {
+func (p *patient) FindUchet(id int64, isCache bool) (*[]models.FindUchetS, error) {
 	cacheName := fmt.Sprintf("find_uchet_%v", id)
 	item, ok := cache.AppCache.Get(cacheName)
 	if ok && isCache {
@@ -78,7 +143,7 @@ func (p *patient) FindUchet(id int, isCache bool) (*[]models.FindUchetS, error) 
 	return data, nil
 }
 
-func (p *patient) FindLastUchet(id int, isCache bool) (*models.FindUchetS, error) {
+func (p *patient) FindLastUchet(id int64, isCache bool) (*models.FindUchetS, error) {
 	cacheName := fmt.Sprintf("find_last_uchet_%v", id)
 	item, ok := cache.AppCache.Get(cacheName)
 	if ok && isCache {
@@ -89,6 +154,22 @@ func (p *patient) FindLastUchet(id int, isCache bool) (*models.FindUchetS, error
 	if err != nil {
 		ERROR.Println(err.Error())
 		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 30)
+	return data, nil
+}
+
+func (p *patient) GetAddress(id int64, isCache bool) (string, error) {
+	cacheName := fmt.Sprintf("patient_address_%v", id)
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok && isCache {
+		return item.(string), nil
+	}
+	model := models.Model.Patient
+	data, err := model.GetAddress(id)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return "", err
 	}
 	cache.AppCache.Set(cacheName, data, 30)
 	return data, nil
@@ -230,7 +311,7 @@ func (p *patient) NewProf(visit *types.NewProf) (int, error) {
 }
 
 func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
-	pat, err := p.FindById(reg.PatientId)
+	pat, err := p.FindById(reg.PatientId, false)
 	if err != nil {
 		return -1, err
 	}
@@ -238,8 +319,12 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 	sprModel := models.Model.Spr
 	patientModel := models.Model.Patient
 
+	address, err := p.GetAddress(pat.Id, false)
+	if err != nil {
+		return -1, err
+	}
 	if reg.Reason == "001" {
-		if len(pat.Address) < 10 {
+		if len(address) < 10 {
 			return 301, nil
 		}
 	}
@@ -386,10 +471,6 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 }
 
 func (p *patient) NewRegisterTransfer(reg *types.NewRegisterTransfer) (int, error) {
-	//pat, err := p.FindById(reg.PatientId)
-	//if err != nil {
-	//	return -1, err
-	//}
 	sprModel := models.Model.Spr
 	patientModel := models.Model.Patient
 
@@ -599,7 +680,7 @@ func (p *patient) RemoveSindrom(sindrom *types.Sindrom) (int, error) {
 	return 0, nil
 }
 
-func (p *patient) FindInvalid(id int, isCache bool) (*[]models.FindInvalid, error) {
+func (p *patient) FindInvalid(id int64, isCache bool) (*[]models.FindInvalid, error) {
 	cacheName := fmt.Sprintf("find_invalid_%v", id)
 	if isCache {
 		item, ok := cache.AppCache.Get(cacheName)
@@ -609,6 +690,114 @@ func (p *patient) FindInvalid(id int, isCache bool) (*[]models.FindInvalid, erro
 	}
 	model := models.Model.Patient
 	data, err := model.FindInvalid(id)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) NewInvalid(newInvalid *types.NewInvalid) (int, error) {
+	conn, err := database.Connect()
+	if err != nil {
+		return 20, err
+	}
+	tx, err := conn.DB.Begin()
+	if err != nil {
+		return 21, err
+	}
+	defer tx.Rollback()
+
+	model := models.Model.Patient
+
+	if newInvalid.IsInfinity {
+		newInvalid.DateEnd = "2222-12-31"
+	}
+
+	d1, err := time.Parse("2006-01-02", newInvalid.DateStart)
+	if err != nil {
+		return 390, err
+	}
+
+	d2, err := time.Parse("2006-01-02", newInvalid.DateEnd)
+	if err != nil {
+		return 391, err
+	}
+
+	if d1.Sub(d2) > 0 {
+		return 396, nil
+	}
+
+	if newInvalid.Kind == "10" {
+		newInvalid.Reason = "1"
+		_, err = model.NewChildInvalid(newInvalid, tx)
+		if err != nil {
+			tx.Rollback()
+			return -1, err
+		}
+	}
+
+	_, err = model.NewInvalid(newInvalid, tx)
+	if err != nil {
+		return -1, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return -1, err
+	}
+	return 0, nil
+}
+
+func (p *patient) UpdInvalid(newInvalid *types.NewInvalid) (int, error) {
+	conn, err := database.Connect()
+	if err != nil {
+		return 20, err
+	}
+	tx, err := conn.DB.Begin()
+	if err != nil {
+		return 21, err
+	}
+	defer tx.Rollback()
+
+	model := models.Model.Patient
+
+	_, err = time.Parse("2006-01-02", newInvalid.DateDocument)
+	if err != nil {
+		return 397, err
+	}
+
+	invalids, err := model.FindInvalid(newInvalid.PatientId)
+	if err != nil {
+		return -1, err
+	}
+	if len(*invalids) == 0 {
+		return 398, nil
+	}
+
+	_, err = model.UpdInvalid(newInvalid, tx)
+	if err != nil {
+		return -1, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return -1, err
+	}
+	return 0, nil
+}
+
+func (p *patient) FindCustody(id int64, isCache bool) (*[]types.FindCustody, error) {
+	cacheName := fmt.Sprintf("find_custody_%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]types.FindCustody), nil
+		}
+	}
+	model := models.Model.Patient
+	data, err := model.FindCustody(id)
 	if err != nil {
 		ERROR.Println(err.Error())
 		return nil, err

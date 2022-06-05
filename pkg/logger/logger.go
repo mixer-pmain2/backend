@@ -32,5 +32,5 @@ func New(name, lvl string) (*log.Logger, error) {
 		log.Fatal(err)
 	}
 
-	return log.New(&logWrite{file: file}, lvl+": ", log.Ldate|log.Ltime|log.Lshortfile), nil
+	return log.New(&logWrite{file: file}, lvl+": ", log.Ldate|log.Ltime), nil
 }

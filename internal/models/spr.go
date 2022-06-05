@@ -251,3 +251,125 @@ func (m *SprModel) IsClosedSection(section int) (bool, error) {
 	return isClose, nil
 
 }
+
+func (m *SprModel) GetSprInvalidKind() (*map[string]string, error) {
+	sql := fmt.Sprintf(`select kod2, na_me from spr_visit_n
+where kod1 = 6 and kod2 > 0 and visible = 1
+order by na_me`)
+	INFO.Println(sql)
+	rows, err := m.DB.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	data := make(map[string]string, 0)
+	for rows.Next() {
+		var row struct {
+			name  string
+			value string
+		}
+		err = rows.Scan(&row.name, &row.value)
+		if err != nil {
+			return nil, err
+		}
+		row.name = strings.Trim(row.name, " ")
+		row.value = strings.Trim(row.value, " ")
+		row.value, err = utils.ToUTF8(row.value)
+		if err != nil {
+			return nil, err
+		}
+		data[row.name] = row.value
+	}
+	return &data, nil
+
+}
+
+func (m *SprModel) GetSprInvalidChildAnomaly() (*map[string]string, error) {
+	sql := fmt.Sprintf(`select kod2, na_me from spr_visit_n
+where kod1 = 14 and kod2 > 0 and visible = 1
+order by na_me`)
+	INFO.Println(sql)
+	rows, err := m.DB.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	data := make(map[string]string, 0)
+	for rows.Next() {
+		var row struct {
+			name  string
+			value string
+		}
+		err = rows.Scan(&row.name, &row.value)
+		if err != nil {
+			return nil, err
+		}
+		row.name = strings.Trim(row.name, " ")
+		row.value = strings.Trim(row.value, " ")
+		row.value, err = utils.ToUTF8(row.value)
+		if err != nil {
+			return nil, err
+		}
+		data[row.name] = row.value
+	}
+	return &data, nil
+
+}
+
+func (m *SprModel) GetSprInvalidChildLimit() (*map[string]string, error) {
+	sql := fmt.Sprintf(`select kod2, na_me from spr_visit_n
+where kod1 = 12 and kod2 > 0`)
+	INFO.Println(sql)
+	rows, err := m.DB.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	data := make(map[string]string, 0)
+	for rows.Next() {
+		var row struct {
+			name  string
+			value string
+		}
+		err = rows.Scan(&row.name, &row.value)
+		if err != nil {
+			return nil, err
+		}
+		row.name = strings.Trim(row.name, " ")
+		row.value = strings.Trim(row.value, " ")
+		row.value, err = utils.ToUTF8(row.value)
+		if err != nil {
+			return nil, err
+		}
+		data[row.name] = row.value
+	}
+	return &data, nil
+
+}
+
+func (m *SprModel) GetSprInvalidReason() (*map[string]string, error) {
+	sql := fmt.Sprintf(`select kod2, na_me from spr_visit_n
+where kod1 = 4 and kod2 > 0 and visible = 1`)
+	INFO.Println(sql)
+	rows, err := m.DB.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	data := make(map[string]string, 0)
+	for rows.Next() {
+		var row struct {
+			name  string
+			value string
+		}
+		err = rows.Scan(&row.name, &row.value)
+		if err != nil {
+			return nil, err
+		}
+		row.name = strings.Trim(row.name, " ")
+		row.value = strings.Trim(row.value, " ")
+		row.value, err = utils.ToUTF8(row.value)
+		if err != nil {
+			return nil, err
+		}
+		data[row.name] = row.value
+	}
+	return &data, nil
+
+}

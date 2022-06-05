@@ -1,5 +1,29 @@
 package types
 
+type Patient struct {
+	Id         int64  `json:"id"`
+	Lname      string `json:"lname"`
+	Fname      string `json:"fname"`
+	Sname      string `json:"sname"`
+	Bday       string `json:"bday"`
+	Visibility int    `json:"visibility"`
+	Sex        string `json:"sex"`
+	Snils      string `json:"snils"`
+	Address    string `json:"address"`
+}
+
+type NewPatient struct {
+	PatientId int64  `json:"patientId"`
+	Lname     string `json:"lname"`
+	Fname     string `json:"fname"`
+	Sname     string `json:"sname"`
+	Bday      string `json:"bday"`
+	IsAnonim  bool   `json:"isAnonim"`
+	Sex       string `json:"sex"`
+	UserId    int    `json:"userId"`
+	IsForced  bool   `json:"isForced"`
+}
+
 type Visit struct {
 	Id       int    `json:"id"`
 	Date     string `json:"date"`
@@ -19,7 +43,7 @@ type NewVisit struct {
 	Home        bool   `json:"home"`
 	Diagnose    string `json:"diagnose"`
 	Date        string `json:"date"`
-	PatientId   int    `json:"patientId"`
+	PatientId   int64  `json:"patientId"`
 	PatientBDay string `json:"patientBDay"`
 	DockId      int    `json:"dockId"`
 	SRC         int    `json:"src"`
@@ -42,7 +66,7 @@ type Sindrom struct {
 }
 
 type NewSRC struct {
-	PatientId int    `json:"patientId"`
+	PatientId int64  `json:"patientId"`
 	DateAdd   string `json:"dateAdd"`
 	DockId    int    `json:"dockId"`
 	Unit      int    `json:"unit"`
@@ -50,7 +74,7 @@ type NewSRC struct {
 }
 
 type NewRegister struct {
-	PatientId  int    `json:"patientId"`
+	PatientId  int64  `json:"patientId"`
 	Reason     string `json:"reason"`
 	ExitReason string `json:"exitReason"`
 	Section    int    `json:"section"`
@@ -60,7 +84,7 @@ type NewRegister struct {
 	DockId     int    `json:"dockId"`
 }
 type NewRegisterTransfer struct {
-	PatientId int    `json:"patientId"`
+	PatientId int64  `json:"patientId"`
 	Category  int    `json:"category"`
 	Section   int    `json:"section"`
 	Date      string `json:"date"`
@@ -71,4 +95,25 @@ type HttpResponse struct {
 	Success bool   `json:"success"`
 	Error   int    `json:"error"`
 	Message string `json:"message"`
+}
+
+type NewInvalid struct {
+	DoctId       int    `json:"doctId"`
+	PatientId    int64  `json:"patientId"`
+	DateStart    string `json:"date_start"`
+	DateEnd      string `json:"date_end"`
+	DateDocument string `json:"date_document"`
+	Reason       string `json:"reason"`
+	Kind         string `json:"kind"`
+	Anomaly      string `json:"anomal"`
+	Limit        string `json:"limit"`
+	IsInfinity   bool   `json:"isInfinity"`
+}
+
+type FindCustody struct {
+	PatientId int64  `json:"patientId"`
+	DoctId    int    `json:"doctId"`
+	DateStart string `json:"dateStart"`
+	DateEnd   string `json:"dateEnd"`
+	Who       string `json:"who"`
 }

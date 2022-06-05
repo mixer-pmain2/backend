@@ -107,3 +107,63 @@ func (s *sprApi) GetSprReasons(w http.ResponseWriter, r *http.Request) error {
 	fmt.Fprintf(w, string(res))
 	return nil
 }
+
+func (s *sprApi) GetSprInvalidKind(w http.ResponseWriter, r *http.Request) error {
+	c := controller.Init()
+	data, err := c.Spr.GetSprInvalidKind()
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) GetSprInvalidChildAnomaly(w http.ResponseWriter, r *http.Request) error {
+	c := controller.Init()
+	data, err := c.Spr.GetSprInvalidChildAnomaly()
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) GetSprInvalidChildLimit(w http.ResponseWriter, r *http.Request) error {
+	c := controller.Init()
+	data, err := c.Spr.GetSprInvalidChildLimit()
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) GetSprInvalidReason(w http.ResponseWriter, r *http.Request) error {
+	c := controller.Init()
+	data, err := c.Spr.GetSprInvalidReason()
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}

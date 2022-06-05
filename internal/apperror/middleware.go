@@ -1,8 +1,10 @@
 package apperror
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
+	"pmain2/internal/types"
 	"pmain2/pkg/logger"
 )
 
@@ -31,9 +33,15 @@ func Middleware(handle appHandler) http.HandlerFunc {
 			//if status == http.StatusNotFound {
 			//	fmt.Println("StatusNotFound")
 			//}
+			res, _ := json.Marshal(types.HttpResponse{
+				Success: false,
+				Error:   0,
+				Message: "Ошибка выполнения запроса",
+			})
 
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+			ERROR.Println(err.Error())
+			w.Write(res)
 		}
 	}
 }

@@ -172,3 +172,103 @@ func (s *spr) GetSprReason() (*map[string]string, error) {
 	cache.AppCache.Set(cacheName, data, time.Hour)
 	return data, nil
 }
+
+func (s *spr) GetSprInvalidKind() (*map[string]string, error) {
+	cacheName := "spr_invalid_kind"
+
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok {
+		res := item.(*map[string]string)
+		return res, nil
+	}
+
+	conn, err := database.Connect()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	model := models.Init(conn.DB).Spr
+	data, err := model.GetSprInvalidKind()
+	if err != nil {
+		return nil, err
+	}
+
+	cache.AppCache.Set(cacheName, data, time.Hour)
+	return data, nil
+}
+
+func (s *spr) GetSprInvalidChildAnomaly() (*map[string]string, error) {
+	cacheName := "spr_invalid_child_anomaly"
+
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok {
+		res := item.(*map[string]string)
+		return res, nil
+	}
+
+	conn, err := database.Connect()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	model := models.Init(conn.DB).Spr
+	data, err := model.GetSprInvalidChildAnomaly()
+	if err != nil {
+		return nil, err
+	}
+
+	cache.AppCache.Set(cacheName, data, time.Hour)
+	return data, nil
+}
+
+func (s *spr) GetSprInvalidChildLimit() (*map[string]string, error) {
+	cacheName := "spr_invalid_child_limit"
+
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok {
+		res := item.(*map[string]string)
+		return res, nil
+	}
+
+	conn, err := database.Connect()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	model := models.Init(conn.DB).Spr
+	data, err := model.GetSprInvalidChildLimit()
+	if err != nil {
+		return nil, err
+	}
+
+	cache.AppCache.Set(cacheName, data, time.Hour)
+	return data, nil
+}
+
+func (s *spr) GetSprInvalidReason() (*map[string]string, error) {
+	cacheName := "spr_invalid_reason"
+
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok {
+		res := item.(*map[string]string)
+		return res, nil
+	}
+
+	conn, err := database.Connect()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	model := models.Init(conn.DB).Spr
+	data, err := model.GetSprInvalidReason()
+	if err != nil {
+		return nil, err
+	}
+
+	cache.AppCache.Set(cacheName, data, time.Hour)
+	return data, nil
+}

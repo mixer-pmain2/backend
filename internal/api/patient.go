@@ -29,8 +29,14 @@ func (p *patientApi) Get(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
 	c := controller.Init()
-	pData, err := c.Patient.FindById(id)
+	pData, err := c.Patient.FindById(int64(id), isCache)
 	if pData != nil {
 		res, err := json.Marshal(pData)
 		if err != nil {
@@ -77,6 +83,46 @@ func (p *patientApi) Find(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (p *patientApi) New(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return nil
+	}
+	newPatient := types.NewPatient{}
+	err := json.NewDecoder(r.Body).Decode(&newPatient)
+
+	c := controller.Init()
+	val, err, data := c.Patient.New(&newPatient)
+	if err != nil {
+		return err
+	}
+
+	type result struct {
+		IsForced bool             `json:"isForced"`
+		Data     *[]types.Patient `json:"data"`
+		types.HttpResponse
+	}
+	_res := types.HttpResponse{Success: true, Error: 0}
+	if val > 0 {
+		_res.Success = false
+		_res.Error = val
+		_res.Message = consts.ArrErrors[val]
+	}
+	response := result{
+		newPatient.IsForced,
+		data,
+		_res,
+	}
+
+	marshal, err := json.Marshal(response)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, string(marshal))
+	return nil
+}
+
 func (p *patientApi) FindUchet(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -94,7 +140,7 @@ func (p *patientApi) FindUchet(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	c := controller.Init()
-	data, err := c.Patient.FindUchet(id, isCache)
+	data, err := c.Patient.FindUchet(int64(id), isCache)
 	if err != nil {
 		return err
 	}
@@ -224,6 +270,41 @@ func (p *patientApi) HistoryVisits(w http.ResponseWriter, r *http.Request) error
 	}
 
 	marshal, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, string(marshal))
+	return nil
+}
+
+func (p *patientApi) GetAddress(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return nil
+	}
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		return err
+	}
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.GetAddress(int64(id), isCache)
+	if err != nil {
+		return err
+	}
+
+	res := struct {
+		Address string `json:"address"`
+	}{data}
+
+	marshal, err := json.Marshal(res)
 	if err != nil {
 		return err
 	}
@@ -425,7 +506,95 @@ func (p *patientApi) FindInvalid(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	c := controller.Init()
-	data, err := c.Patient.FindInvalid(id, isCache)
+	data, err := c.Patient.FindInvalid(int64(id), isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) NewInvalid(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	var newInvalid types.NewInvalid
+	fmt.Println(r.Body)
+	err := json.NewDecoder(r.Body).Decode(&newInvalid)
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	val, err := c.Patient.NewInvalid(&newInvalid)
+	if err != nil && val < 0 {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) UpdInvalid(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	var newInvalid types.NewInvalid
+	fmt.Println(r.Body)
+	err := json.NewDecoder(r.Body).Decode(&newInvalid)
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	val, err := c.Patient.UpdInvalid(&newInvalid)
+	if err != nil && val < 0 {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) FindCustody(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		return err
+	}
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.FindCustody(int64(id), isCache)
 	if err != nil {
 		return err
 	}

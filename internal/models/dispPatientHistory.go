@@ -60,7 +60,7 @@ type HistoryHospital struct {
 	DiagStartS    string         `json:"diagStartS"`
 	DiagEndS      string         `json:"diagEndS"`
 	DiagEndSNull  sql.NullString `json:"-"`
-	Otd           string         `json:"otd"`
+	Otd           int            `json:"otd"`
 	HistoryNumber int            `json:"historyNumber"`
 	Where         string         `json:"where"`
 }
@@ -84,7 +84,7 @@ func (m *patientModel) HistoryHospital(id int) (*[]HistoryHospital, error) {
 			p.DateEnd = ""
 		}
 		p.DiagStart = strings.Trim(p.DiagStart, " ")
-		p.DiagEnd = strings.Trim(p.DiagEnd, " ")
+		p.DiagEnd, _ = utils.ToUTF8(strings.Trim(p.DiagEnd, " "))
 		p.DiagStartS, _ = utils.ToUTF8(strings.Trim(p.DiagStartS, " "))
 		p.DiagEndS = p.DiagEndSNull.String
 		p.DiagEndS, _ = utils.ToUTF8(strings.Trim(p.DiagEndS, " "))
