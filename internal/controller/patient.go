@@ -119,7 +119,11 @@ func (p *patient) FindById(id int64, isCache bool) (*types.Patient, error) {
 	defer conn.Close()
 
 	model := models.Init(conn.DB).Patient
-	data, err := model.Get(id)
+	err, tx := CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	data, err := model.Get(id, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -798,6 +802,190 @@ func (p *patient) FindCustody(id int64, isCache bool) (*[]types.FindCustody, err
 	}
 	model := models.Model.Patient
 	data, err := model.FindCustody(id)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) NewCustody(custody *types.NewCustody) (int, error) {
+
+	_, err := time.Parse("2006-01-02", custody.DateStart)
+	if err != nil {
+		return 400, err
+	}
+
+	if custody.Custody == "" {
+		return 402, nil
+	}
+
+	err, tx := CreateTx()
+	if err != nil {
+		return 21, err
+	}
+	defer tx.Rollback()
+
+	model := models.Model.Patient
+	_, err = model.NewCustody(custody, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return -1, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return -1, err
+	}
+	return 0, nil
+}
+
+func (p *patient) UpdCustody(custody *types.NewCustody) (int, error) {
+
+	_, err := time.Parse("2006-01-02", custody.DateStart)
+	if err != nil {
+		return 400, err
+	}
+
+	_, err = time.Parse("2006-01-02", custody.DateEnd)
+	if err != nil {
+		return 401, err
+	}
+
+	err, tx := CreateTx()
+	if err != nil {
+		return 21, err
+	}
+	defer tx.Rollback()
+
+	model := models.Model.Patient
+	_, err = model.UpdCustody(custody, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return -1, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return -1, err
+	}
+	return 0, nil
+}
+
+func (p *patient) FindVaccination(id int64, isCache bool) (*[]types.FindVaccination, error) {
+	cacheName := fmt.Sprintf("find_vaccination_%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]types.FindVaccination), nil
+		}
+	}
+	model := models.Model.Patient
+	data, err := model.FindVaccination(id)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) FindInfection(id int64, isCache bool) (*[]types.FindInfection, error) {
+	cacheName := fmt.Sprintf("find_infection_%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]types.FindInfection), nil
+		}
+	}
+	model := models.Model.Patient
+	data, err := model.FindInfection(id)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) UpdPassport(passport *types.Patient) (int, error) {
+
+	err, tx := CreateTx()
+	if err != nil {
+		return 21, err
+	}
+	defer tx.Rollback()
+
+	model := models.Model.Patient
+	_, err = model.UpdPassport(passport, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return -1, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return -1, err
+	}
+	return 0, nil
+}
+
+func (p *patient) UpdAddress(address *types.Patient) (int, error) {
+	model := models.Model.Patient
+
+	err, tx := CreateTx()
+	if err != nil {
+		return -1, err
+	}
+	patient, err := model.Get(address.Id, tx)
+	tx.Commit()
+	if address.Republic == 0 {
+		address.Republic = patient.Republic
+	}
+	if address.Region == 0 {
+		address.Region = patient.Region
+	}
+	if address.District == 0 {
+		address.District = patient.District
+	}
+	if address.Area == 0 {
+		address.Area = patient.Area
+	}
+	if address.Street == 0 {
+		address.Street = patient.Street
+	}
+	if address.Domicile == 0 {
+		address.Domicile = patient.Domicile
+	}
+	err, tx = CreateTx()
+	if err != nil {
+		return 21, err
+	}
+	defer tx.Rollback()
+	_, err = model.UpdAddress(address, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return -1, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return -1, err
+	}
+	return 0, nil
+}
+
+func (p *patient) GetSection22(id int64, isCache bool) (*[]types.ST22, error) {
+	cacheName := fmt.Sprintf("find_section22_%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]types.ST22), nil
+		}
+	}
+	model := models.Model.Patient
+	data, err := model.GetSection22(id)
 	if err != nil {
 		ERROR.Println(err.Error())
 		return nil, err

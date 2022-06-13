@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"database/sql"
+	"pmain2/internal/database"
 	"pmain2/pkg/logger"
 )
 
@@ -21,4 +23,17 @@ func Init() *Controller {
 		Patient: initPatientController(),
 		Spr:     initSprController(),
 	}
+}
+
+func CreateTx() (error, *sql.Tx) {
+
+	conn, err := database.Connect()
+	if err != nil {
+		return err, nil
+	}
+	tx, err := conn.DB.Begin()
+	if err != nil {
+		return err, nil
+	}
+	return nil, tx
 }

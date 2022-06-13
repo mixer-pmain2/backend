@@ -603,3 +603,206 @@ func (p *patientApi) FindCustody(w http.ResponseWriter, r *http.Request) error {
 	w.Write(resMarshal)
 	return nil
 }
+
+func (p *patientApi) NewCustody(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		return err
+	}
+
+	var newCustody types.NewCustody
+	err = json.NewDecoder(r.Body).Decode(&newCustody)
+	if err != nil {
+		return err
+	}
+	newCustody.PatientId = int64(id)
+	c := controller.Init()
+	val, err := c.Patient.NewCustody(&newCustody)
+	if err != nil && val < 0 {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) UpdCustody(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		return err
+	}
+
+	var newCustody types.NewCustody
+	err = json.NewDecoder(r.Body).Decode(&newCustody)
+	if err != nil {
+		return err
+	}
+	newCustody.PatientId = int64(id)
+	c := controller.Init()
+	val, err := c.Patient.UpdCustody(&newCustody)
+	if err != nil && val < 0 {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) FindVaccination(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		return err
+	}
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.FindVaccination(int64(id), isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) FindInfection(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	params := getParams(r, nil)
+
+	c := controller.Init()
+	data, err := c.Patient.FindInfection(int64(params.id), params.isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) UpdPassport(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	passport := &types.Patient{}
+	params := getParams(r, passport)
+	passport.Id = int64(params.id)
+
+	c := controller.Init()
+	val, err := c.Patient.UpdPassport(passport)
+	if err != nil && val < 0 {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) UpdAddress(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	address := &types.Patient{}
+	params := getParams(r, address)
+	address.Id = int64(params.id)
+
+	c := controller.Init()
+	val, err := c.Patient.UpdAddress(address)
+	if err != nil && val < 0 {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) GetSection22(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		return err
+	}
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.GetSection22(int64(id), isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}

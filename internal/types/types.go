@@ -1,15 +1,37 @@
 package types
 
+type Find struct {
+	Name string `json:"name"`
+}
+
+type Spr struct {
+	Code  string `json:"code"`
+	Param string `json:"param"`
+	Name  string `json:"name"`
+}
+
 type Patient struct {
-	Id         int64  `json:"id"`
-	Lname      string `json:"lname"`
-	Fname      string `json:"fname"`
-	Sname      string `json:"sname"`
-	Bday       string `json:"bday"`
-	Visibility int    `json:"visibility"`
-	Sex        string `json:"sex"`
-	Snils      string `json:"snils"`
-	Address    string `json:"address"`
+	Id             int64  `json:"id"`
+	Lname          string `json:"lname"`
+	Fname          string `json:"fname"`
+	Sname          string `json:"sname"`
+	Bday           string `json:"bday"`
+	Visibility     int    `json:"visibility"`
+	Sex            string `json:"sex"`
+	Snils          string `json:"snils"`
+	Address        string `json:"address"`
+	PassportSeries string `json:"passportSeries"`
+	PassportNumber int    `json:"passportNumber"`
+	Works          int    `json:"works"`
+	Republic       int    `json:"republic"`
+	Region         int    `json:"region"`
+	District       int    `json:"district"`
+	Area           int    `json:"area"`
+	Street         int    `json:"street"`
+	House          string `json:"house"`
+	Build          string `json:"build"`
+	Flat           string `json:"flat"`
+	Domicile       int    `json:"domicile"`
 }
 
 type NewPatient struct {
@@ -111,9 +133,40 @@ type NewInvalid struct {
 }
 
 type FindCustody struct {
-	PatientId int64  `json:"patientId"`
-	DoctId    int    `json:"doctId"`
 	DateStart string `json:"dateStart"`
 	DateEnd   string `json:"dateEnd"`
 	Who       string `json:"who"`
+}
+
+type NewCustody struct {
+	PatientId int64  `json:"patientId"`
+	DoctId    int    `json:"doctId"`
+	Custody   string `json:"custody"`
+	DateStart string `json:"dateStart"`
+	DateEnd   string `json:"dateEnd"`
+}
+
+type FindVaccination struct {
+	Date        string `json:"date"`
+	Vaccination string `json:"vaccination"`
+	Number      string `json:"number"`
+	Series      string `json:"series"`
+	Result      string `json:"result"`
+	Detached    string `json:"detached"`
+}
+
+type FindInfection struct {
+	Date     string `json:"date"`
+	Diagnose string `json:"diagnose"`
+}
+
+type ST22 struct {
+	Id        int    `json:"id"`
+	PatientId int64  `json:"patientId"`
+	DateStart string `json:"dateStart"`
+	DateEnd   string `json:"dateEnd"`
+	Section   int    `json:"section"`
+	Part      int    `json:"part"`
+	InsWho    int    `json:"insWho"`
+	InsDate   string `json:"insDate"`
 }

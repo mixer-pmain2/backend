@@ -42,16 +42,19 @@ values(?, ?, ?, ?, ?, ?, ?, ?)`)
 	return stmt.Exec(p.PatientId, p.Lname, p.Fname, p.Sname, p.Bday, p.Sex, "NOW", p.UserId)
 }
 
-func (m *patientModel) Get(id int64) (*types.Patient, error) {
+func (m *patientModel) Get(id int64, tx *sql.Tx) (*types.Patient, error) {
 	data := types.Patient{}
-	sql := fmt.Sprintf(`select patient_id, lname, fname, sname, bday, bl_group, sex, job, adres
+	sql := fmt.Sprintf(`select patient_id, lname, fname, sname, bday, bl_group, sex, job, adres, passp_ser, passp_num, residence,
+republic, region, district, pop_area, street, house, building, flat, domicile
 from general g, find_adres(g.patient_id,0) where patient_id=%v`, id)
 	INFO.Println(sql)
-	row := m.DB.QueryRow(sql)
+	row := tx.QueryRow(sql)
 
 	err := row.Scan(
 		&data.Id, &data.Lname, &data.Fname, &data.Sname,
-		&data.Bday, &data.Visibility, &data.Sex, &data.Snils, &data.Address)
+		&data.Bday, &data.Visibility, &data.Sex, &data.Snils, &data.Address,
+		&data.PassportSeries, &data.PassportNumber, &data.Works,
+		&data.Republic, &data.Region, &data.District, &data.Area, &data.Street, &data.House, &data.Build, &data.Flat, &data.Domicile)
 	if err != nil {
 		ERROR.Println(err.Error())
 		return nil, err
@@ -464,6 +467,101 @@ order by db desc`, id)
 		}
 
 		r.Who, _ = utils.ToUTF8(strings.Trim(r.Who, " "))
+		data = append(data, r)
+	}
+
+	return &data, nil
+}
+
+func (m *patientModel) NewCustody(custody *types.NewCustody, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`insert into opekun(patient_id, op_begin, who, ins_who, ins_date)
+values(%v, '%s', '%s', %v, '%s')`,
+		custody.PatientId, custody.DateStart, custody.Custody, custody.DoctId, time.Now().Format("2006-01-02"))
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) UpdCustody(custody *types.NewCustody, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`update opekun set op_end = '%s' where patient_id = %v and op_begin = '%s'`,
+		custody.DateEnd, custody.PatientId, custody.DateStart)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) FindVaccination(id int64) (*[]types.FindVaccination, error) {
+	sqlQuery := fmt.Sprintf(`SELECT dat, priv, nomer, seria, resul , med_otvod from find_priv(%v)
+order by dat desc`, id)
+
+	rows, err := m.DB.Query(sqlQuery)
+	if err != nil {
+		return nil, err
+	}
+	var data = make([]types.FindVaccination, 0)
+	for rows.Next() {
+		r := types.FindVaccination{}
+		rows.Scan(&r.Date, &r.Vaccination, &r.Number, &r.Series, &r.Result, &r.Detached)
+		r.Date, _ = utils.FormatToDate(r.Date)
+		r.Vaccination, _ = utils.ToUTF8(r.Vaccination)
+		r.Number, _ = utils.ToUTF8(r.Number)
+		r.Series, _ = utils.ToUTF8(r.Series)
+		r.Result, _ = utils.ToUTF8(r.Result)
+		r.Detached, _ = utils.ToUTF8(r.Detached)
+
+		data = append(data, r)
+	}
+
+	return &data, nil
+}
+
+func (m *patientModel) FindInfection(id int64) (*[]types.FindInfection, error) {
+	sqlQuery := fmt.Sprintf(`select datp, diag from find_infec(%v)`, id)
+
+	rows, err := m.DB.Query(sqlQuery)
+	if err != nil {
+		return nil, err
+	}
+	var data = make([]types.FindInfection, 0)
+	for rows.Next() {
+		r := types.FindInfection{}
+		rows.Scan(&r.Date, &r.Diagnose)
+		r.Date, _ = utils.FormatToDate(r.Date)
+		r.Diagnose, _ = utils.ToUTF8(r.Diagnose)
+
+		data = append(data, r)
+	}
+
+	return &data, nil
+}
+
+func (m *patientModel) UpdPassport(passport *types.Patient, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`update general
+set passp_ser = '%s', passp_num = %v, job = '%s', residence = %v where patient_id = %v`,
+		passport.PassportSeries, passport.PassportNumber, passport.Snils, passport.Works, passport.Id)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) UpdAddress(address *types.Patient, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`update general
+set republic = %v, region = %v, district = %v, pop_area = %v, street = %v, house = '%s', building = '%s', flat = '%s', domicile = %v where patient_id = %v`,
+		address.Republic, address.Region, address.District, address.Area, address.Street, address.House, address.Build, address.Flat, address.Domicile, address.Id)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) GetSection22(id int64) (*[]types.ST22, error) {
+	sqlQuery := fmt.Sprintf(`SELECT NOM_Z, PATIENT_ID, DAT_BEG, DAT_END, ST, CHAST, INS_WHO, INS_DAT FROM st22 WHERE PATIENT_ID = %v`, id)
+
+	rows, err := m.DB.Query(sqlQuery)
+	if err != nil {
+		return nil, err
+	}
+	var data = make([]types.ST22, 0)
+	for rows.Next() {
+		r := types.ST22{}
+		rows.Scan(&r.Id, &r.PatientId, &r.DateStart, &r.DateEnd, &r.Section, &r.Part, &r.InsWho, &r.InsDate)
+		r.DateStart, _ = utils.FormatToDate(r.DateStart)
+		r.DateEnd, _ = utils.FormatToDate(r.DateEnd)
+		r.InsDate, _ = utils.FormatToDate(r.InsDate)
+
 		data = append(data, r)
 	}
 

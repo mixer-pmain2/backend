@@ -2,7 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/gorilla/mux"
+	"net/http"
 	"pmain2/pkg/logger"
+	"strconv"
 )
 
 var (
@@ -37,4 +41,32 @@ func (s Success) Marshal() string {
 		return ""
 	}
 	return string(marshal)
+}
+
+type apiParams struct {
+	id      int
+	isCache bool
+}
+
+func getParams(r *http.Request, t interface{}) *apiParams {
+
+	params := mux.Vars(r)
+	var err error
+	p := apiParams{}
+	p.id, err = strconv.Atoi(params["id"])
+	if err != nil {
+		p.id = 0
+	}
+
+	p.isCache, err = strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		p.isCache = true
+	}
+
+	if t != nil {
+		fmt.Println(r.Body)
+		json.NewDecoder(r.Body).Decode(&t)
+	}
+
+	return &p
 }

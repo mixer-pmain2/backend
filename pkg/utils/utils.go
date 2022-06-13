@@ -37,6 +37,11 @@ func ToDate(t time.Time) string {
 	return t.Format("2006-01-02")
 }
 
+func FormatToDate(d string) (string, error) {
+	date, err := time.Parse(time.RFC3339, d)
+	return date.Format("2006-01-02"), err
+}
+
 func RuneToAscii(r rune) string {
 	if r < 128 {
 		return string(r)

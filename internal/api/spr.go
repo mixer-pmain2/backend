@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"pmain2/internal/controller"
+	"pmain2/internal/types"
 )
 
 type sprApi struct{}
@@ -156,6 +158,131 @@ func (s *sprApi) GetSprInvalidChildLimit(w http.ResponseWriter, r *http.Request)
 func (s *sprApi) GetSprInvalidReason(w http.ResponseWriter, r *http.Request) error {
 	c := controller.Init()
 	data, err := c.Spr.GetSprInvalidReason()
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) GetSprCustodyWho(w http.ResponseWriter, r *http.Request) error {
+	c := controller.Init()
+	data, err := c.Spr.GetSprCustodyWho()
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) FindRepublic(w http.ResponseWriter, r *http.Request) error {
+	var err error
+	find := &types.Find{}
+	find.Name, err = url.QueryUnescape(r.URL.Query().Get("name"))
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	data, err := c.Spr.FindRepublic(find)
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) FindRegion(w http.ResponseWriter, r *http.Request) error {
+	var err error
+	find := &types.Find{}
+	find.Name, err = url.QueryUnescape(r.URL.Query().Get("name"))
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	data, err := c.Spr.FindRegion(find)
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) FindDistrict(w http.ResponseWriter, r *http.Request) error {
+	var err error
+	find := &types.Find{}
+	find.Name, err = url.QueryUnescape(r.URL.Query().Get("name"))
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	data, err := c.Spr.FindDistrict(find)
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) FindArea(w http.ResponseWriter, r *http.Request) error {
+	var err error
+	find := &types.Find{}
+	find.Name, err = url.QueryUnescape(r.URL.Query().Get("name"))
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	data, err := c.Spr.FindArea(find)
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) FindStreet(w http.ResponseWriter, r *http.Request) error {
+	var err error
+	find := &types.Find{}
+	find.Name, err = url.QueryUnescape(r.URL.Query().Get("name"))
+	if err != nil {
+		return err
+	}
+
+	c := controller.Init()
+	data, err := c.Spr.FindStreet(find)
 	if err != nil {
 		return err
 	}

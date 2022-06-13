@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"pmain2/internal/types"
 	"pmain2/pkg/utils"
 	"strings"
 	"time"
@@ -369,6 +370,163 @@ where kod1 = 4 and kod2 > 0 and visible = 1`)
 			return nil, err
 		}
 		data[row.name] = row.value
+	}
+	return &data, nil
+
+}
+
+func (m *SprModel) GetSprCustodyWho() (*map[string]string, error) {
+	sql := fmt.Sprintf(`select kod1, NA_ME from spr_med
+where spr_nam = 'care'`)
+	INFO.Println(sql)
+	rows, err := m.DB.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	data := make(map[string]string, 0)
+	for rows.Next() {
+		var row struct {
+			name  string
+			value string
+		}
+		err = rows.Scan(&row.name, &row.value)
+		if err != nil {
+			return nil, err
+		}
+		row.name = strings.Trim(row.name, " ")
+		row.value = strings.Trim(row.value, " ")
+		row.value, err = utils.ToUTF8(row.value)
+		if err != nil {
+			return nil, err
+		}
+		data[row.name] = row.value
+	}
+	return &data, nil
+
+}
+
+func (m *SprModel) FindRepublic(find *types.Find) (*[]types.Spr, error) {
+	sql := fmt.Sprintf(`select kod1, na_me from spr_adress
+where spr_nam = 'republic' and na_me >= ?
+order by na_me`)
+	INFO.Println(sql)
+	stmt, err := m.DB.Prepare(sql)
+	rows, err := stmt.Query(find.Name)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]types.Spr, 0)
+	for rows.Next() {
+		var row types.Spr
+		err = rows.Scan(&row.Code, &row.Name)
+		if err != nil {
+			return nil, err
+		}
+		row.Code, _ = utils.ToUTF8(strings.Trim(row.Code, " "))
+		row.Name, _ = utils.ToUTF8(strings.Trim(row.Name, " "))
+		data = append(data, row)
+	}
+	return &data, nil
+
+}
+
+func (m *SprModel) FindRegion(find *types.Find) (*[]types.Spr, error) {
+	sql := fmt.Sprintf(`select kod1, na_me from spr_adress
+where spr_nam = 'region' and na_me >= ?
+order by na_me
+`)
+	INFO.Println(sql)
+	stmt, err := m.DB.Prepare(sql)
+	rows, err := stmt.Query(find.Name)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]types.Spr, 0)
+	for rows.Next() {
+		var row types.Spr
+		err = rows.Scan(&row.Code, &row.Name)
+		if err != nil {
+			return nil, err
+		}
+		row.Code, _ = utils.ToUTF8(strings.Trim(row.Code, " "))
+		row.Name, _ = utils.ToUTF8(strings.Trim(row.Name, " "))
+		data = append(data, row)
+	}
+	return &data, nil
+
+}
+
+func (m *SprModel) FindDistrict(find *types.Find) (*[]types.Spr, error) {
+	sql := fmt.Sprintf(`select kod1, na_me from spr_adress
+where spr_nam = 'district' and na_me >= ?
+order by na_me`)
+	INFO.Println(sql)
+	stmt, err := m.DB.Prepare(sql)
+	rows, err := stmt.Query(find.Name)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]types.Spr, 0)
+	for rows.Next() {
+		var row types.Spr
+		err = rows.Scan(&row.Code, &row.Name)
+		if err != nil {
+			return nil, err
+		}
+		row.Code, _ = utils.ToUTF8(strings.Trim(row.Code, " "))
+		row.Name, _ = utils.ToUTF8(strings.Trim(row.Name, " "))
+		data = append(data, row)
+	}
+	return &data, nil
+
+}
+
+func (m *SprModel) FindArea(find *types.Find) (*[]types.Spr, error) {
+	sql := fmt.Sprintf(`select kod1, na_me, kod2 from spr_adress
+where spr_nam = 'pop_area' and na_me >= ?
+order by na_me`)
+	INFO.Println(sql)
+	stmt, err := m.DB.Prepare(sql)
+	rows, err := stmt.Query(find.Name)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]types.Spr, 0)
+	for rows.Next() {
+		var row types.Spr
+		err = rows.Scan(&row.Code, &row.Name, &row.Param)
+		if err != nil {
+			return nil, err
+		}
+		row.Code, _ = utils.ToUTF8(strings.Trim(row.Code, " "))
+		row.Name, _ = utils.ToUTF8(strings.Trim(row.Name, " "))
+		row.Param, _ = utils.ToUTF8(strings.Trim(row.Param, " "))
+		data = append(data, row)
+	}
+	return &data, nil
+
+}
+
+func (m *SprModel) FindStreet(find *types.Find) (*[]types.Spr, error) {
+	sql := fmt.Sprintf(`select kod1, na_me from spr_adress
+where spr_nam = 'street' and na_me >= ?
+order by na_me`)
+	INFO.Println(sql)
+	stmt, err := m.DB.Prepare(sql)
+	rows, err := stmt.Query(find.Name)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]types.Spr, 0)
+	for rows.Next() {
+		var row types.Spr
+		err = rows.Scan(&row.Code, &row.Name)
+		if err != nil {
+			return nil, err
+		}
+		row.Code, _ = utils.ToUTF8(strings.Trim(row.Code, " "))
+		row.Name, _ = utils.ToUTF8(strings.Trim(row.Name, " "))
+		data = append(data, row)
 	}
 	return &data, nil
 
