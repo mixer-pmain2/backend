@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"pmain2/internal/apperror"
+	"pmain2/internal/types"
 )
 
 type userModel struct {
@@ -139,4 +140,10 @@ order by podraz, uch;`, id)
 	}
 
 	return &data, nil
+}
+
+func (m *userModel) ChangePassword(data types.ChangePassword) (sql.Result, error) {
+	sql := fmt.Sprintf(`update spr_doct set pass_new ='%s' where kod_dock_i = %v`, data.NewPassword, data.UserId)
+	INFO.Println(sql)
+	return m.DB.Exec(sql)
 }

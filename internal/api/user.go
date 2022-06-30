@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"pmain2/internal/controller"
+	"pmain2/internal/types"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -48,11 +49,6 @@ func (u *userApi) GetUser(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-type SignInBody struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 func (u *userApi) Signin(w http.ResponseWriter, r *http.Request) error {
 	username, _, ok := r.BasicAuth()
 	if !ok {
@@ -84,18 +80,10 @@ func (u *userApi) Signin(w http.ResponseWriter, r *http.Request) error {
 
 func (u *userApi) GetPrava(w http.ResponseWriter, r *http.Request) error {
 
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
-	if err != nil {
-		return err
-	}
+	params := getParams(r, nil)
 
-	conn, err := database.Connect()
-	if err != nil {
-		return err
-	}
-	model := models.Init(conn.DB).User
-	data, err := model.GetPrava(id)
+	contr := controller.Init()
+	data, err := contr.User.GetPrava(params.id, params.isCache)
 	if err != nil {
 		return err
 	}
@@ -126,5 +114,22 @@ func (u *userApi) GetUch(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (u *userApi) ChangePassword(w http.ResponseWriter, r *http.Request) error {
+
+	data := types.ChangePassword{}
+	params := getParams(r, &data)
+	data.UserId = int64(params.id)
+
+	contr := controller.Init()
+	fmt.Println(data)
+	val, err := contr.User.ChangePassword(data)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, string(resSuccess(val)))
 	return nil
 }

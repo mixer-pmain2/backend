@@ -12,16 +12,20 @@ var (
 )
 
 type Controller struct {
-	User    *user
-	Patient *patient
-	Spr     *spr
+	User           *user
+	Patient        *patient
+	Doctor         *doctor
+	Spr            *spr
+	Administration *administration
 }
 
 func Init() *Controller {
 	return &Controller{
-		User:    initUserController(),
-		Patient: initPatientController(),
-		Spr:     initSprController(),
+		User:           initUserController(),
+		Patient:        initPatientController(),
+		Doctor:         initDoctorController(),
+		Spr:            initSprController(),
+		Administration: initAdministrationController(),
 	}
 }
 

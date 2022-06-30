@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"pmain2/internal/controller"
 	"pmain2/internal/types"
+	"strconv"
 )
 
 type sprApi struct{}
@@ -283,6 +284,81 @@ func (s *sprApi) FindStreet(w http.ResponseWriter, r *http.Request) error {
 
 	c := controller.Init()
 	data, err := c.Spr.FindStreet(find)
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) FindSections(w http.ResponseWriter, r *http.Request) error {
+	var err error
+	params := getParams(r, nil)
+	find := &types.FindI{}
+	podr, err := url.QueryUnescape(r.URL.Query().Get("unit"))
+	if err != nil {
+		return err
+	}
+	podrI, _ := strconv.Atoi(podr)
+	find.Name = int64(podrI)
+
+	c := controller.Init()
+	data, err := c.Spr.FindSections(find, params.isCache)
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) FindSectionDoctor(w http.ResponseWriter, r *http.Request) error {
+	var err error
+	params := getParams(r, nil)
+	find := &types.FindI{}
+	podr, err := url.QueryUnescape(r.URL.Query().Get("unit"))
+	if err != nil {
+		return err
+	}
+	podrI, _ := strconv.Atoi(podr)
+	find.Name = int64(podrI)
+
+	c := controller.Init()
+	data, err := c.Spr.FindSectionDoctor(find, params.isCache)
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (s *sprApi) GetDoctors(w http.ResponseWriter, r *http.Request) error {
+	var err error
+	params := getParams(r, nil)
+	find := &types.FindI{}
+	podr, err := url.QueryUnescape(r.URL.Query().Get("unit"))
+	if err != nil {
+		return err
+	}
+	podrI, _ := strconv.Atoi(podr)
+	find.Name = int64(podrI)
+
+	c := controller.Init()
+	data, err := c.Spr.GetDoctors(find, params.isCache)
 	if err != nil {
 		return err
 	}

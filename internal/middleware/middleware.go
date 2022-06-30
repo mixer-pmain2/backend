@@ -40,7 +40,7 @@ func BasicAuth(h http.Handler) http.Handler {
 					ERROR.Println(err.Error())
 					return
 				}
-				appCache.Set(auth{username: username, password: password}, isAuth, 0)
+				appCache.Set(auth{username: username, password: password}, isAuth, time.Second*10)
 			}
 			if isAuth != nil && isAuth.(bool) {
 				h.ServeHTTP(w, r)

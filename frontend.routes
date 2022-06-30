@@ -3,8 +3,8 @@
 /profile
 /disp
 /patient/find
-/patient/{id}
 /patient/new
-/disp/administration
+/patient/{id}
+/administration
 /report
 /admin

@@ -15,16 +15,19 @@ var (
 )
 
 type models struct {
-	Patient   patientModel
-	Registrat registratModel
-	Spr       SprModel
-	User      userModel
-	Visit     VisitModel
+	Patient        patientModel
+	Doctor         doctorModel
+	Registrat      registratModel
+	Spr            SprModel
+	User           userModel
+	Visit          VisitModel
+	Administration administrationModel
 }
 
 func Init(db *sql.DB) *models {
 	return &models{
 		Patient:   *createPatient(db),
+		Doctor:    *createDoctor(db),
 		Registrat: *createRegistrat(db),
 		Spr:       *createSpr(db),
 		User:      *createUser(db),

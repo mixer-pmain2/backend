@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"pmain2/internal/types"
 	"pmain2/pkg/utils"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -530,4 +531,88 @@ order by na_me`)
 	}
 	return &data, nil
 
+}
+
+func (m *SprModel) FindSections(find *types.FindI) (*[]types.SprUchN, error) {
+	sql := fmt.Sprintf(`SELECT nom_z, uch, KOMMENT, PLAN_P, CHAS, SPEC, disp FROM SPR_UCH_N sun`)
+	if find.Name > 0 {
+		sql = fmt.Sprintf(`%s where bin_and(disp,?) = ? and uch >= 10`, sql)
+	}
+	INFO.Println(sql)
+	stmt, err := m.DB.Prepare(sql)
+	rows, err := stmt.Query(find.Name, find.Name)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]types.SprUchN, 0)
+	for rows.Next() {
+		var row types.SprUchN
+		err = rows.Scan(&row.Id, &row.Section, &row.Name, &row.Plan, &row.Hour, &row.Spec, &row.Unit)
+		if err != nil {
+			return nil, err
+		}
+		row.Name, _ = utils.ToUTF8(strings.Trim(row.Name, " "))
+		row.Spec, _ = utils.ToUTF8(strings.Trim(row.Spec, " "))
+		data = append(data, row)
+	}
+	return &data, nil
+
+}
+
+func (m *SprModel) FindSectionDoctor(find *types.FindI) (*[]types.LocationDoctor, error) {
+	sql := fmt.Sprintf(`SELECT du.uch, du.DOCK, sd.FIO, sd.IM, sd.OT, du.PODRAZ 
+FROM DOCK_UCH du
+LEFT JOIN spr_doct sd ON sd.KOD_DOCK = du.DOCK 
+WHERE du.PRIZ = 1
+AND PODRAZ = ?
+ORDER BY uch`)
+	INFO.Println(sql)
+	stmt, err := m.DB.Prepare(sql)
+	rows, err := stmt.Query(find.Name)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]types.LocationDoctor, 0)
+	for rows.Next() {
+		var row types.LocationDoctor
+		id := ""
+		err = rows.Scan(&row.Section, &id, &row.Lname, &row.Fname, &row.Sname, &row.Unit)
+		if err != nil {
+			return nil, err
+		}
+		row.DoctId, _ = strconv.Atoi(strings.Trim(id, " "))
+		row.Lname, _ = utils.ToUTF8(strings.Trim(row.Lname, " "))
+		row.Fname, _ = utils.ToUTF8(strings.Trim(row.Fname, " "))
+		row.Sname, _ = utils.ToUTF8(strings.Trim(row.Sname, " "))
+		data = append(data, row)
+	}
+	return &data, nil
+}
+
+func (m *SprModel) GetDoctors(find *types.FindI) (*[]types.Doctor, error) {
+	sql := fmt.Sprintf(`SELECT KOD_DOCK_I, FIO, IM, OT, prava, z152
+FROM SPR_DOCT sd 
+WHERE kod = 1 AND dock = 1
+AND bin_and(v_disp, ?) = ?
+and kod_dock <> 888888
+order by fio, im, ot`)
+	INFO.Println(sql)
+	stmt, err := m.DB.Prepare(sql)
+	rows, err := stmt.Query(find.Name, find.Name)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]types.Doctor, 0)
+	for rows.Next() {
+		var row types.Doctor
+		err = rows.Scan(&row.Id, &row.Lname, &row.Fname, &row.Sname, &row.Access, &row.Z152)
+		if err != nil {
+			return nil, err
+		}
+		row.Lname, _ = utils.ToUTF8(strings.Trim(row.Lname, " "))
+		row.Fname, _ = utils.ToUTF8(strings.Trim(row.Fname, " "))
+		row.Sname, _ = utils.ToUTF8(strings.Trim(row.Sname, " "))
+		data = append(data, row)
+	}
+	return &data, nil
 }

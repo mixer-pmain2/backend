@@ -4,6 +4,10 @@ type Find struct {
 	Name string `json:"name"`
 }
 
+type FindI struct {
+	Name int64 `json:"name"`
+}
+
 type Spr struct {
 	Code  string `json:"code"`
 	Param string `json:"param"`
@@ -118,7 +122,6 @@ type HttpResponse struct {
 	Error   int    `json:"error"`
 	Message string `json:"message"`
 }
-
 type NewInvalid struct {
 	DoctId       int    `json:"doctId"`
 	PatientId    int64  `json:"patientId"`
@@ -169,4 +172,46 @@ type ST22 struct {
 	Part      int    `json:"part"`
 	InsWho    int    `json:"insWho"`
 	InsDate   string `json:"insDate"`
+}
+
+type SprUchN struct {
+	Id      int     `json:"id"`
+	Section int     `json:"section"`
+	Name    string  `json:"name"`
+	Plan    float64 `json:"plan"`
+	Hour    float64 `json:"hour"`
+	Spec    string  `json:"spec"`
+	Unit    int     `json:"unit"`
+}
+
+type LocationDoctor struct {
+	Section int    `json:"section"`
+	Spec    string `json:"spec"`
+	DoctId  int    `json:"doctId"`
+	Lname   string `json:"lname"`
+	Fname   string `json:"fname"`
+	Sname   string `json:"sname"`
+	Unit    int    `json:"unit"`
+}
+
+type Doctor struct {
+	Id     int    `json:"id"`
+	Lname  string `json:"lname"`
+	Fname  string `json:"fname"`
+	Sname  string `json:"sname"`
+	Access int    `json:"access"`
+	Z152   int    `json:"z152"`
+}
+
+//administration
+
+type DoctorBySection struct {
+	Section  int `json:"section"`
+	DoctorId int `json:"doctorId"`
+}
+
+type NewDoctorLocation struct {
+	Date string            `json:"date"`
+	Unit int               `json:"unit"`
+	Data []DoctorBySection `json:"data"`
 }

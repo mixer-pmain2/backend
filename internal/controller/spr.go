@@ -448,3 +448,78 @@ func (s *spr) FindStreet(find *types.Find) (*[]types.Spr, error) {
 	cache.AppCache.Set(cacheName, data, time.Hour)
 	return data, nil
 }
+
+func (s *spr) FindSections(find *types.FindI, isCache bool) (*[]types.SprUchN, error) {
+	cacheName := "spr_section_" + string(find.Name)
+
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok && isCache {
+		res := item.(*[]types.SprUchN)
+		return res, nil
+	}
+
+	conn, err := database.Connect()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	model := models.Init(conn.DB).Spr
+	data, err := model.FindSections(find)
+	if err != nil {
+		return nil, err
+	}
+
+	cache.AppCache.Set(cacheName, data, time.Hour)
+	return data, nil
+}
+
+func (s *spr) FindSectionDoctor(find *types.FindI, isCache bool) (*[]types.LocationDoctor, error) {
+	cacheName := "find_section_doctor_by_unit_" + string(find.Name)
+
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok && isCache {
+		res := item.(*[]types.LocationDoctor)
+		return res, nil
+	}
+
+	conn, err := database.Connect()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	model := models.Init(conn.DB).Spr
+	data, err := model.FindSectionDoctor(find)
+	if err != nil {
+		return nil, err
+	}
+
+	cache.AppCache.Set(cacheName, data, time.Hour)
+	return data, nil
+}
+
+func (s *spr) GetDoctors(find *types.FindI, isCache bool) (*[]types.Doctor, error) {
+	cacheName := "get_doctors_by_unit_" + string(find.Name)
+
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok && isCache {
+		res := item.(*[]types.Doctor)
+		return res, nil
+	}
+
+	conn, err := database.Connect()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	model := models.Init(conn.DB).Spr
+	data, err := model.GetDoctors(find)
+	if err != nil {
+		return nil, err
+	}
+
+	cache.AppCache.Set(cacheName, data, time.Hour)
+	return data, nil
+}

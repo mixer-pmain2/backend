@@ -567,3 +567,11 @@ func (m *patientModel) GetSection22(id int64) (*[]types.ST22, error) {
 
 	return &data, nil
 }
+
+func (m *patientModel) NewSection22(section *types.ST22, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`insert into st22(PATIENT_ID, DAT_BEG, DAT_END, ST, CHAST, INS_WHO)
+values (%v, '%s', '%s', %v, %v, %v)`,
+		section.PatientId, section.DateStart, section.DateEnd, section.Section, section.Part, section.InsWho)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}

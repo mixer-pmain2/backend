@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
+	"pmain2/internal/consts"
+	"pmain2/internal/types"
 	"pmain2/pkg/logger"
 	"strconv"
 )
@@ -18,16 +20,20 @@ var (
 )
 
 type Api struct {
-	User    *userApi
-	Patient *patientApi
-	Spr     *sprApi
+	User           *userApi
+	Patient        *patientApi
+	Doctor         *doctorApi
+	Spr            *sprApi
+	Administration *administrationApi
 }
 
 func Init() *Api {
 	return &Api{
-		User:    userApiInit(),
-		Patient: patientApiInit(),
-		Spr:     sprApiInit(),
+		User:           userApiInit(),
+		Patient:        patientApiInit(),
+		Doctor:         doctorApiInit(),
+		Spr:            sprApiInit(),
+		Administration: administrationApiInit(),
 	}
 }
 
@@ -69,4 +75,16 @@ func getParams(r *http.Request, t interface{}) *apiParams {
 	}
 
 	return &p
+}
+
+func resSuccess(val int) []byte {
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	return resMarshal
 }

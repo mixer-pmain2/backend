@@ -993,3 +993,34 @@ func (p *patient) GetSection22(id int64, isCache bool) (*[]types.ST22, error) {
 	cache.AppCache.Set(cacheName, data, 0)
 	return data, nil
 }
+
+func (p *patient) NewSection22(section *types.ST22) (int, error) {
+	model := models.Model.Patient
+
+	_, err := time.Parse("2006-01-02", section.DateStart)
+	if err != nil {
+		return 410, err
+	}
+
+	_, err = time.Parse("2006-01-02", section.DateEnd)
+	if err != nil {
+		return 411, err
+	}
+
+	err, tx := CreateTx()
+	if err != nil {
+		return 21, err
+	}
+	defer tx.Rollback()
+	_, err = model.NewSection22(section, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return -1, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return -1, err
+	}
+	return 0, nil
+}
