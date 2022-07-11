@@ -16,9 +16,19 @@ func initUserController() *user {
 
 func (u *user) IsAuth(login, password string) (bool, error) {
 	model := models.Model.User
-	ok, err := model.UserAuth(login, password)
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+	ok, err := model.UserAuth(login, password, tx)
 	if err != nil {
 		ERROR.Println(err.Error())
+		return false, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return false, err
 	}
 	return ok, nil
@@ -34,7 +44,17 @@ func (u *user) GetUch(id int) (*map[int][]int, error) {
 	}
 
 	model := models.Model.User
-	data, err := model.GetUch(id)
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetUch(id, tx)
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+	err = tx.Commit()
 	if err != nil {
 		ERROR.Println(err)
 		return nil, err
@@ -55,8 +75,18 @@ func (u *user) GetPrava(id int, isCache bool) (*map[int]int, error) {
 	}
 
 	model := models.Model.User
-	data, err := model.GetPrava(id)
+	err, tx := models.Model.CreateTx()
 	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetPrava(id, tx)
+	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 	cache.AppCache.Set(cacheName, data, 0)
@@ -68,7 +98,12 @@ func (u *user) ChangePassword(data types.ChangePassword) (int, error) {
 	//data.NewPassword, _ = utils.ToWin1251(data.NewPassword)
 
 	model := models.Model.User
-	isAuth, err := model.UserAuth(strconv.FormatInt(data.UserId, 10), data.Password)
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 20, err
+	}
+	defer tx.Rollback()
+	isAuth, err := model.UserAuth(strconv.FormatInt(data.UserId, 10), data.Password, tx)
 	if err != nil {
 		ERROR.Println(err)
 		return -1, err
@@ -77,7 +112,12 @@ func (u *user) ChangePassword(data types.ChangePassword) (int, error) {
 		return 600, nil
 	}
 
-	_, err = model.ChangePassword(data)
+	_, err = model.ChangePassword(data, tx)
+	if err != nil {
+		ERROR.Println(err)
+		return -1, err
+	}
+	err = tx.Commit()
 	if err != nil {
 		ERROR.Println(err)
 		return -1, err

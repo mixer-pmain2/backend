@@ -3,7 +3,6 @@ package controller
 import (
 	"fmt"
 	cacheName "pmain2/internal/cache"
-	"pmain2/internal/database"
 	"pmain2/internal/models"
 	"pmain2/internal/types"
 	"pmain2/pkg/cache"
@@ -28,21 +27,15 @@ func (p *doctor) GetRate(data types.DoctorFindParams, isCache bool) (*[]types.Do
 		return item.(*[]types.DoctorRate), nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Doctor
+	err, tx := models.Model.CreateTx()
 	if err != nil {
-		ERROR.Println(err)
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Doctor
-	err, tx := CreateTx()
-	if err != nil {
-		ERROR.Println(err)
-		return nil, err
-	}
+	defer tx.Rollback()
 	res, err := model.GetRate(data, tx)
 	if err != nil {
+		tx.Rollback()
 		ERROR.Println(err)
 		return nil, err
 	}
@@ -59,22 +52,21 @@ func (p *doctor) VisitCountPlan(data types.DoctorFindParams, isCache bool) (*[]t
 		return item.(*[]types.DoctorVisitCountPlan), nil
 	}
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
-		ERROR.Println(err)
 		return nil, err
 	}
-	defer conn.Close()
+	defer tx.Rollback()
 
-	model := models.Init(conn.DB).Doctor
-	err, tx := CreateTx()
-	if err != nil {
-		ERROR.Println(err)
-		return nil, err
-	}
+	model := models.Model.Doctor
 	res, err := model.VisitCountPlan(data, tx)
 	if err != nil {
+		tx.Rollback()
 		ERROR.Println(err)
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 
@@ -90,22 +82,20 @@ func (p *doctor) GetUnits(data types.DoctorFindParams, isCache bool) (*[]int, er
 		return item.(*[]int), nil
 	}
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
-		ERROR.Println(err)
 		return nil, err
 	}
-	defer conn.Close()
+	defer tx.Rollback()
 
-	model := models.Init(conn.DB).Doctor
-	err, tx := CreateTx()
-	if err != nil {
-		ERROR.Println(err)
-		return nil, err
-	}
+	model := models.Model.Doctor
 	res, err := model.GetUnits(data, tx)
 	if err != nil {
 		ERROR.Println(err)
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 
@@ -115,19 +105,13 @@ func (p *doctor) GetUnits(data types.DoctorFindParams, isCache bool) (*[]int, er
 
 func (p *doctor) UpdRate(data types.DoctorQueryUpdRate) (int, error) {
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
-		return -1, err
+		return 20, err
 	}
-	defer conn.Close()
+	defer tx.Rollback()
 
-	model := models.Init(conn.DB).Doctor
-	err, tx := CreateTx()
-	defer tx.Commit()
-	if err != nil {
-		ERROR.Println(err)
-		return -1, err
-	}
+	model := models.Model.Doctor
 	res, err := model.GetRate(types.DoctorFindParams{
 		data.DoctorId,
 		data.Month,
@@ -137,7 +121,7 @@ func (p *doctor) UpdRate(data types.DoctorQueryUpdRate) (int, error) {
 	if err != nil {
 		tx.Rollback()
 		ERROR.Println(err)
-		return -1, err
+		return 21, err
 	}
 	if len(*res) > 0 {
 		_, err = model.UpdRate(data, tx)
@@ -154,31 +138,32 @@ func (p *doctor) UpdRate(data types.DoctorQueryUpdRate) (int, error) {
 			return -1, err
 		}
 	}
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
+	}
 	cache.AppCache.Delete(cacheName.DoctorRate(data.DoctorId, data.Year, data.Month, data.Unit))
 	return 0, nil
 }
 
 func (p *doctor) DelRate(data types.DoctorQueryUpdRate) (int, error) {
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
-		return -1, err
+		return 20, err
 	}
-	defer conn.Close()
+	defer tx.Rollback()
 
-	model := models.Init(conn.DB).Doctor
-	err, tx := CreateTx()
-	defer tx.Commit()
-	if err != nil {
-		ERROR.Println(err)
-		return -1, err
-	}
-
+	model := models.Model.Doctor
 	_, err = model.DelRate(data, tx)
 	if err != nil {
 		tx.Rollback()
 		ERROR.Println(err)
 		return -1, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
 	}
 
 	return 0, nil

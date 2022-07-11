@@ -21,12 +21,12 @@ type auth struct {
 	password string
 }
 
-func BasicAuth(h http.Handler) http.Handler {
+func CheckAuth(h http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		username, password, ok := r.BasicAuth()
-		if ok {
+		if ok && payed {
 			isAuth, ok := appCache.Get(auth{username: username, password: password})
 			if !ok {
 				c := controller.Init()

@@ -834,3 +834,131 @@ func (p *patientApi) NewSection22(w http.ResponseWriter, r *http.Request) error 
 	w.Write(resMarshal)
 	return nil
 }
+
+func (p *patientApi) SOD(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	params := getParams(r, nil)
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.SOD(int64(params.id), isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) OODLast(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	params := getParams(r, nil)
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.OODLast(int64(params.id), isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) FindSection29(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	params := getParams(r, nil)
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.FindSection29(int64(params.id), isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) NewOOD(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	ood := &types.OOD{}
+	params := getParams(r, ood)
+	ood.PatientId = int64(params.id)
+
+	c := controller.Init()
+	val, err := c.Patient.NewOOD(ood)
+	if err != nil && val < 0 {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) NewSOD(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	sod := &types.SOD{}
+	params := getParams(r, sod)
+	sod.PatientId = int64(params.id)
+
+	c := controller.Init()
+	val, err := c.Patient.NewSOD(sod)
+	if err != nil && val < 0 {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}

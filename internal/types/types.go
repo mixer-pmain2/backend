@@ -118,9 +118,10 @@ type NewRegisterTransfer struct {
 }
 
 type HttpResponse struct {
-	Success bool   `json:"success"`
-	Error   int    `json:"error"`
-	Message string `json:"message"`
+	Success bool        `json:"success"`
+	Error   int         `json:"error"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
 }
 type NewInvalid struct {
 	DoctId       int    `json:"doctId"`
@@ -130,7 +131,7 @@ type NewInvalid struct {
 	DateDocument string `json:"date_document"`
 	Reason       string `json:"reason"`
 	Kind         string `json:"kind"`
-	Anomaly      string `json:"anomal"`
+	Anomaly      string `json:"anomaly"`
 	Limit        string `json:"limit"`
 	IsInfinity   bool   `json:"isInfinity"`
 }
@@ -182,6 +183,29 @@ type SprUchN struct {
 	Hour    float64 `json:"hour"`
 	Spec    string  `json:"spec"`
 	Unit    int     `json:"unit"`
+}
+
+type SOD struct {
+	PatientId int64  `json:"patientId"`
+	Date      string `json:"date"`
+	Section   int    `json:"section"`
+	Part      int    `json:"part"`
+}
+
+type OOD struct {
+	PatientId    int64 `json:"patientId"`
+	Danger       int   `json:"danger"`
+	Syndrome     int   `json:"syndrome"`
+	Difficulties int   `json:"difficulties"`
+	Attitude     int   `json:"attitude"`
+	UserId       int64 `json:"userId"`
+}
+
+type FindSection29 struct {
+	DateStart string `json:"dateStart"`
+	Diagnose  string `json:"diagnose"`
+	DateEnd   string `json:"dateEnd"`
+	Section   string `json:"section"`
 }
 
 type LocationDoctor struct {

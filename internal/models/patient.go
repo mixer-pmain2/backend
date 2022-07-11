@@ -12,16 +12,15 @@ import (
 )
 
 type patientModel struct {
-	DB *sql.DB
 }
 
-func createPatient(db *sql.DB) *patientModel {
-	return &patientModel{DB: db}
+func createPatient() *patientModel {
+	return &patientModel{}
 }
 
-func (m *patientModel) GetMaxPatientId() (int64, error) {
+func (m *patientModel) GetMaxPatientId(tx *sql.Tx) (int64, error) {
 	sqlQuery := "select max(patient_id) from general where patient_id < 1000000"
-	row := m.DB.QueryRow(sqlQuery)
+	row := tx.QueryRow(sqlQuery)
 	INFO.Println(sqlQuery)
 	var id int64
 	err := row.Scan(&id)
@@ -35,6 +34,7 @@ func (m *patientModel) New(p *types.NewPatient, tx *sql.Tx) (sql.Result, error) 
 	sqlQuery := fmt.Sprintf(`insert into general(patient_id, LName, FName, SName, BDay, Sex, date_insert, who_insert)
 values(?, ?, ?, ?, ?, ?, ?, ?)`)
 	stmt, err := tx.Prepare(sqlQuery)
+	defer stmt.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,9 @@ values(?, ?, ?, ?, ?, ?, ?, ?)`)
 
 func (m *patientModel) Get(id int64, tx *sql.Tx) (*types.Patient, error) {
 	data := types.Patient{}
-	sql := fmt.Sprintf(`select patient_id, lname, fname, sname, bday, bl_group, sex, job, adres, passp_ser, passp_num, residence,
+	sql := fmt.Sprintf(`select patient_id, lname, fname, sname,
+bday, bl_group, sex, job, adres,
+passp_ser, passp_num, residence,
 republic, region, district, pop_area, street, house, building, flat, domicile
 from general g, find_adres(g.patient_id,0) where patient_id=%v`, id)
 	INFO.Println(sql)
@@ -79,7 +81,7 @@ from general g, find_adres(g.patient_id,0) where patient_id=%v`, id)
 	return &data, nil
 }
 
-func (m *patientModel) FindByFIO(lname, fname, sname string) (*[]types.Patient, error) {
+func (m *patientModel) FindByFIO(lname, fname, sname string, tx *sql.Tx) (*[]types.Patient, error) {
 	var data = make([]types.Patient, 0)
 	sql := fmt.Sprintf(
 		`select patient_id, lname, fname, sname, bday, bl_group, sex, job from general
@@ -88,11 +90,13 @@ func (m *patientModel) FindByFIO(lname, fname, sname string) (*[]types.Patient, 
 				and sname like ?
 				order by lname, fname, sname`)
 	INFO.Println(sql)
-	stmt, err := m.DB.Prepare(sql)
+	stmt, err := tx.Prepare(sql)
+	defer stmt.Close()
 	if err != nil {
 		return nil, err
 	}
 	rows, err := stmt.Query(lname+"%", fname+"%", sname+"%")
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -105,14 +109,13 @@ func (m *patientModel) FindByFIO(lname, fname, sname string) (*[]types.Patient, 
 		p.Serialize()
 		data = append(data, p)
 	}
-
 	return &data, nil
 }
 
-func (m *patientModel) GetAddress(id int64) (string, error) {
+func (m *patientModel) GetAddress(id int64, tx *sql.Tx) (string, error) {
 	var address string
 	sql := fmt.Sprintf("select adres from find_adres(%v,0)", id)
-	row := m.DB.QueryRow(sql)
+	row := tx.QueryRow(sql)
 	err := row.Scan(&address)
 	if err != nil {
 		return "", err
@@ -140,11 +143,12 @@ type FindUchetS struct {
 	Section       int            `json:"section"`
 }
 
-func (m *patientModel) FindUchet(patientId int64, first, skip int) (*[]FindUchetS, error) {
+func (m *patientModel) FindUchet(patientId int64, first, skip int, tx *sql.Tx) (*[]FindUchetS, error) {
 	sql := fmt.Sprintf(`select FIRST %v SKIP %v nz, datp, m.categ, kat, rr, prich, diagt, diagts, trim(reg_doct), dock, uch from find_uchet_m(%v) m
 order by datp desc,  nz DESC`, first, skip, patientId)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -184,8 +188,8 @@ order by datp desc,  nz DESC`, first, skip, patientId)
 	return &data, nil
 }
 
-func (m *patientModel) FindLastUchet(patientId int64) (*FindUchetS, error) {
-	data, err := m.FindUchet(patientId, 1, 0)
+func (m *patientModel) FindLastUchet(patientId int64, tx *sql.Tx) (*FindUchetS, error) {
+	data, err := m.FindUchet(patientId, 1, 0, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -229,11 +233,11 @@ values(%v, '%s', %v, %v, %v)`, spc.PatientId, spc.DateAdd, spc.DockId, spc.Unit,
 	return result, nil
 }
 
-func (m *patientModel) IsVisited(visit *types.NewVisit) (bool, error) {
+func (m *patientModel) IsVisited(visit *types.NewVisit, tx *sql.Tx) (bool, error) {
 	sql := fmt.Sprintf(
 		`SELECT kol from KONTR_VISIT(%v, %v, %v, '%s')`, visit.DockId, visit.Uch, visit.PatientId, visit.Date)
 	INFO.Println(sql)
-	row := m.DB.QueryRow(sql)
+	row := tx.QueryRow(sql)
 	count := false
 	err := row.Scan(&count)
 	if err != nil {
@@ -268,13 +272,13 @@ func (m *patientModel) NewProf(visit types.NewProf, tx *sql.Tx) (sql.Result, err
 	return result, nil
 }
 
-func (m *patientModel) GetCountJudgment(patientId int64) (int, error) {
+func (m *patientModel) GetCountJudgment(patientId int64, tx *sql.Tx) (int, error) {
 	sql := fmt.Sprintf(`select count(*) from prinud_m
 where patient_id = %v
 and nom_z = (select max(nom_z) from prinud_m where patient_id = %v)
 and ((exit_date is null)or(exit_date < '01.01.1950'))`, patientId, patientId)
 	INFO.Println(sql)
-	row := m.DB.QueryRow(sql)
+	row := tx.QueryRow(sql)
 	count := 0
 	err := row.Scan(&count)
 	if err != nil {
@@ -284,12 +288,12 @@ and ((exit_date is null)or(exit_date < '01.01.1950'))`, patientId, patientId)
 	return count, nil
 }
 
-func (m *patientModel) IsInHospital(patientId int64) (bool, error) {
+func (m *patientModel) IsInHospital(patientId int64, tx *sql.Tx) (bool, error) {
 	sqlQuery := fmt.Sprintf(`select count(*) from kart_m
 where patient_id = %v 
 and ((exit_date is null)or(exit_date = '30.12.1899'))`, patientId)
 	INFO.Println(sqlQuery)
-	row := m.DB.QueryRow(sqlQuery)
+	row := tx.QueryRow(sqlQuery)
 	count := 0
 	err := row.Scan(&count)
 	if err != nil {
@@ -302,7 +306,7 @@ and ((exit_date is null)or(exit_date = '30.12.1899'))`, patientId)
 	return false, nil
 }
 
-func (m *patientModel) GetCountRegDataInDate(patientId int64, section int, date time.Time) (int, error) {
+func (m *patientModel) GetCountRegDataInDate(patientId int64, section int, date time.Time, tx *sql.Tx) (int, error) {
 	d1 := utils.ToDate(date)
 	d2 := utils.ToDate(date.AddDate(0, 0, 1))
 	sqlQuery := fmt.Sprintf(`select count(*) from registrat_m 
@@ -311,7 +315,7 @@ and reg_date between '%s' and '%s'
 and RTRIM(reg_reas) not in ('S011','P001','001') 
 and RTRIM(sec_tion) = %v`, patientId, d1, d2, section)
 	INFO.Println(sqlQuery)
-	row := m.DB.QueryRow(sqlQuery)
+	row := tx.QueryRow(sqlQuery)
 	count := 0
 	err := row.Scan(&count)
 	if err != nil {
@@ -379,13 +383,14 @@ type FindInvalid struct {
 	Id         int    `json:"id"`
 }
 
-func (m *patientModel) FindInvalid(patientId int64) (*[]FindInvalid, error) {
+func (m *patientModel) FindInvalid(patientId int64, tx *sql.Tx) (*[]FindInvalid, error) {
 	sqlQuery := fmt.Sprintf(`select a.inv_begin, (select na_me from spr_visit_n where kod2 = a.inv_kind and kod1 = 6) as inv_kind,
 (select na_me from spr_visit_n where kod2 = a.inv_reas and kod1 = 4) as inv_reas, a.inv_change, a.inv_end, a.nom_z
 from invalid a where a.patient_id = %v
 order by inv_begin DESC`, patientId)
 	INFO.Println(sqlQuery)
-	rows, err := m.DB.Query(sqlQuery)
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -439,11 +444,12 @@ and inv_end = (select max(inv_end) from invalid where patient_id = %v)`,
 	return tx.Exec(sqlQuery)
 }
 
-func (m *patientModel) FindCustody(id int64) (*[]types.FindCustody, error) {
+func (m *patientModel) FindCustody(id int64, tx *sql.Tx) (*[]types.FindCustody, error) {
 	sqlQuery := fmt.Sprintf(`select KTO, DB, DE from  find_opeka(%v)
 order by db desc`, id)
 
-	rows, err := m.DB.Query(sqlQuery)
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -486,11 +492,12 @@ func (m *patientModel) UpdCustody(custody *types.NewCustody, tx *sql.Tx) (sql.Re
 	return tx.Exec(sqlQuery)
 }
 
-func (m *patientModel) FindVaccination(id int64) (*[]types.FindVaccination, error) {
+func (m *patientModel) FindVaccination(id int64, tx *sql.Tx) (*[]types.FindVaccination, error) {
 	sqlQuery := fmt.Sprintf(`SELECT dat, priv, nomer, seria, resul , med_otvod from find_priv(%v)
 order by dat desc`, id)
 
-	rows, err := m.DB.Query(sqlQuery)
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -511,10 +518,11 @@ order by dat desc`, id)
 	return &data, nil
 }
 
-func (m *patientModel) FindInfection(id int64) (*[]types.FindInfection, error) {
+func (m *patientModel) FindInfection(id int64, tx *sql.Tx) (*[]types.FindInfection, error) {
 	sqlQuery := fmt.Sprintf(`select datp, diag from find_infec(%v)`, id)
 
-	rows, err := m.DB.Query(sqlQuery)
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -547,10 +555,11 @@ set republic = %v, region = %v, district = %v, pop_area = %v, street = %v, house
 	return tx.Exec(sqlQuery)
 }
 
-func (m *patientModel) GetSection22(id int64) (*[]types.ST22, error) {
+func (m *patientModel) GetSection22(id int64, tx *sql.Tx) (*[]types.ST22, error) {
 	sqlQuery := fmt.Sprintf(`SELECT NOM_Z, PATIENT_ID, DAT_BEG, DAT_END, ST, CHAST, INS_WHO, INS_DAT FROM st22 WHERE PATIENT_ID = %v`, id)
 
-	rows, err := m.DB.Query(sqlQuery)
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -572,6 +581,82 @@ func (m *patientModel) NewSection22(section *types.ST22, tx *sql.Tx) (sql.Result
 	sqlQuery := fmt.Sprintf(`insert into st22(PATIENT_ID, DAT_BEG, DAT_END, ST, CHAST, INS_WHO)
 values (%v, '%s', '%s', %v, %v, %v)`,
 		section.PatientId, section.DateStart, section.DateEnd, section.Section, section.Part, section.InsWho)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) SOD(id int64, tx *sql.Tx) (*[]types.SOD, error) {
+	sqlQuery := fmt.Sprintf(`select sod_date,statia,chast    from  SOD  where  patient_id = %v
+order  by   sod_date desc`, id)
+
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	var data = make([]types.SOD, 0)
+	for rows.Next() {
+		r := types.SOD{}
+		rows.Scan(&r.Date, &r.Section, &r.Part)
+
+		data = append(data, r)
+	}
+
+	return &data, nil
+}
+
+func (m *patientModel) OODLast(id int64, tx *sql.Tx) (*types.OOD, error) {
+	sqlQuery := fmt.Sprintf(`select maska1, maska2, maska3, maska4 from profil_ood p where p.patient_id = %v
+and nom_z = ( select max(nom_z) from profil_ood p1 where p1.patient_id = p.patient_id)`, id)
+
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	var r = types.OOD{}
+	for rows.Next() {
+		rows.Scan(&r.Danger, &r.Syndrome, &r.Difficulties, &r.Attitude)
+	}
+
+	return &r, nil
+}
+
+func (m *patientModel) FindSection29(id int64, tx *sql.Tx) (*[]types.FindSection29, error) {
+	sqlQuery := fmt.Sprintf(`select f.dat_p, f.diag_p, f.dat_e, trim(f.rezult_p)||rtrim(f.rezult_k)  from  find_post_29(%v)   f
+where  ((bin_and( f.priem_post_reason,32) = 32))
+order by  dat_p DESC`, id)
+
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
+	data := make([]types.FindSection29, 0)
+	if err != nil {
+		return nil, err
+	}
+	var r = types.FindSection29{}
+	for rows.Next() {
+		rows.Scan(&r.DateStart, &r.Diagnose, &r.DateEnd, &r.Section)
+		r.Section, _ = utils.ToUTF8(r.Section)
+		data = append(data, r)
+	}
+
+	return &data, nil
+}
+
+func (m *patientModel) NewOOD(ood *types.OOD, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(` insert into profil_ood( patient_id,vid,maska1,maska2,maska3,maska4,
+    beg_date,end_date ,upd_who, upd_date )
+ values( %v, %v, %v, %v, %v, %v,
+          '%s', '%s' , %v, '%s' )`,
+		ood.PatientId, 0, ood.Danger, ood.Syndrome, ood.Difficulties, ood.Attitude,
+		"01.01.1900", "01.01.2222", ood.UserId, time.Now().Format("2006-01-02"))
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) NewSOD(sod *types.SOD, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`insert into SOD (patient_id,sod_date,statia, chast,prinud)
+values (%v, '%s', %v, %v, %v)`, sod.PatientId, sod.Date, sod.Section, sod.Part, 0)
 	INFO.Println(sqlQuery)
 	return tx.Exec(sqlQuery)
 }

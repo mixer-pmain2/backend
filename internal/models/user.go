@@ -9,20 +9,19 @@ import (
 )
 
 type userModel struct {
-	DB *sql.DB
 }
 
-func createUser(db *sql.DB) *userModel {
-	return &userModel{DB: db}
+func createUser() *userModel {
+	return &userModel{}
 }
 
-func (m *userModel) FoundByFIO(lname, fname, sname string) (*[]SprDoct, error) {
+func (m *userModel) FoundByFIO(lname, fname, sname string, tx *sql.Tx) (*[]SprDoct, error) {
 	data := []SprDoct{}
 	sql := fmt.Sprintf(
 		"select kod_dock_i, fio, im, ot FROM SPR_DOCT where position('%s', fio)>0 and position('%s', im)>0 and position('%s', ot)>0",
 		lname, fname, sname)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
 	if err != nil {
 		ERROR.Println(err.Error())
 		return nil, err
@@ -42,12 +41,12 @@ func (m *userModel) FoundByFIO(lname, fname, sname string) (*[]SprDoct, error) {
 	return &data, nil
 }
 
-func (m *userModel) Get(id int) (*SprDoct, error) {
+func (m *userModel) Get(id int, tx *sql.Tx) (*SprDoct, error) {
 	data := SprDoct{}
 	sql := fmt.Sprintf(
 		"select kod_dock_i, fio, im, ot FROM SPR_DOCT where kod_dock_i=%v", id)
 	INFO.Println(sql)
-	row := m.DB.QueryRow(sql)
+	row := tx.QueryRow(sql)
 	err := row.Scan(&data.Id, &data.Lname, &data.Fname, &data.Sname)
 	if err != nil {
 		ERROR.Println(err.Error())
@@ -74,17 +73,17 @@ func (m *userModel) Get(id int) (*SprDoct, error) {
 	return &data, nil
 }
 
-func (m *userModel) UserAuth(login, password string) (bool, error) {
+func (m *userModel) UserAuth(login, password string, tx *sql.Tx) (bool, error) {
 	var n int
 	sql := fmt.Sprintf(
-		"select count(*) FROM SPR_DOCT where kod_dock_i=? and pass_new=?")
+		"select count(*) FROM SPR_DOCT where kod_dock=? and pass_new=?")
 	INFO.Println(sql)
-	stmt, err := m.DB.Prepare(sql)
+	stmt, err := tx.Prepare(sql)
 	if err != nil {
 		return false, err
 	}
 	rows := stmt.QueryRow(login, password)
-	//rows := m.DB.QueryRow(sql)
+	//rows := tx.QueryRow(sql)
 	err = rows.Scan(&n)
 	if err != nil {
 		return false, err
@@ -94,14 +93,14 @@ func (m *userModel) UserAuth(login, password string) (bool, error) {
 	return n > 0, nil
 }
 
-func (m *userModel) GetPrava(id int) (*map[int]int, error) {
+func (m *userModel) GetPrava(id int, tx *sql.Tx) (*map[int]int, error) {
 	data := make(map[int]int, 0)
 	sql := fmt.Sprintf(`SELECT PODR, SUM(PRAVA) 
  FROM DOCK_PRAVA dp WHERE dp.KOD_DOCT=%v
  and 'NOW' BETWEEN DATE_N AND DATE_E 
  group by podr`, id)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
 	if err != nil {
 		ERROR.Println(err.Error())
 		return nil, err
@@ -118,14 +117,14 @@ func (m *userModel) GetPrava(id int) (*map[int]int, error) {
 	return &data, nil
 }
 
-func (m *userModel) GetUch(id int) (*map[int][]int, error) {
+func (m *userModel) GetUch(id int, tx *sql.Tx) (*map[int][]int, error) {
 	data := make(map[int][]int, 0)
 	sql := fmt.Sprintf(`select PODRAZ, UCH from dock_uch
 where dock = %v
 and priz = 1
 order by podraz, uch;`, id)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
 	if err != nil {
 		ERROR.Println(err.Error())
 		return nil, err
@@ -142,8 +141,8 @@ order by podraz, uch;`, id)
 	return &data, nil
 }
 
-func (m *userModel) ChangePassword(data types.ChangePassword) (sql.Result, error) {
+func (m *userModel) ChangePassword(data types.ChangePassword, tx *sql.Tx) (sql.Result, error) {
 	sql := fmt.Sprintf(`update spr_doct set pass_new ='%s' where kod_dock_i = %v`, data.NewPassword, data.UserId)
 	INFO.Println(sql)
-	return m.DB.Exec(sql)
+	return tx.Exec(sql)
 }

@@ -9,11 +9,10 @@ import (
 )
 
 type doctorModel struct {
-	DB *sql.DB
 }
 
-func createDoctor(db *sql.DB) *doctorModel {
-	return &doctorModel{DB: db}
+func createDoctor() *doctorModel {
+	return &doctorModel{}
 }
 
 func (m *doctorModel) GetRate(data types.DoctorFindParams, tx *sql.Tx) (*[]types.DoctorRate, error) {
@@ -23,6 +22,8 @@ from dock_stavka a where trim(kod_dock) = %v and mesec = %v and god = %v
  and bin_or(podrazd,%v)=%v`, data.DoctorId, data.Month, data.Year, data.Unit, data.Unit)
 	INFO.Println(sql)
 	rows, err := tx.Query(sql)
+	defer rows.Close()
+	defer rows.Close()
 	if err != nil {
 		ERROR.Println(err)
 		return nil, err
@@ -53,6 +54,7 @@ where name_doct = %v and v_date between '%s' and '%s'
 group by 1`, data.DoctorId, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
 	INFO.Println(sqlQuery)
 	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
 	if err != nil {
 		ERROR.Println(err)
 		return nil, err

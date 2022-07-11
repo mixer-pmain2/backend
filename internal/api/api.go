@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"pmain2/internal/consts"
+	"pmain2/internal/report"
 	"pmain2/internal/types"
 	"pmain2/pkg/logger"
 	"strconv"
@@ -25,6 +26,7 @@ type Api struct {
 	Doctor         *doctorApi
 	Spr            *sprApi
 	Administration *administrationApi
+	Report         *report.Api
 }
 
 func Init() *Api {
@@ -34,6 +36,7 @@ func Init() *Api {
 		Doctor:         doctorApiInit(),
 		Spr:            sprApiInit(),
 		Administration: administrationApiInit(),
+		Report:         &report.Api{},
 	}
 }
 

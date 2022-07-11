@@ -11,6 +11,8 @@ var (
 	INFO, _  = logger.New("dbase", logger.INFO)
 	ERROR, _ = logger.New("dbase", logger.ERROR)
 
+	db *sql.DB
+
 	Model *models
 )
 
@@ -24,19 +26,31 @@ type models struct {
 	Administration administrationModel
 }
 
-func Init(db *sql.DB) *models {
-	return &models{
-		Patient:   *createPatient(db),
-		Doctor:    *createDoctor(db),
-		Registrat: *createRegistrat(db),
-		Spr:       *createSpr(db),
-		User:      *createUser(db),
-		Visit:     *createVisit(db),
+func Init(dbase *sql.DB) *models {
+	db = dbase
+	INFO.Println("Init models")
+	Model = &models{
+		Patient:   *createPatient(),
+		Doctor:    *createDoctor(),
+		Registrat: *createRegistrat(),
+		Spr:       *createSpr(),
+		User:      *createUser(),
+		Visit:     *createVisit(),
 	}
+	return Model
+}
+
+func (m *models) CreateTx() (error, *sql.Tx) {
+
+	tx, err := db.Begin()
+	if err != nil {
+		return err, nil
+	}
+	return nil, tx
 }
 
 type SprDoct struct {
-	Id       int    `json:"id"`
+	Id       int64  `json:"id"`
 	Lname    string `json:"lname"`
 	Fname    string `json:"fname"`
 	Sname    string `json:"sname"`

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"pmain2/internal/consts"
-	"pmain2/internal/database"
 	"pmain2/internal/models"
 	"pmain2/internal/types"
 	"pmain2/pkg/cache"
@@ -24,16 +23,6 @@ func initPatientController() *patient {
 }
 
 func (p *patient) New(newPatient *types.NewPatient) (int, error, *[]types.Patient) {
-	model := models.Model.Patient
-
-	conn, err := database.Connect()
-	if err != nil {
-		return 20, err, nil
-	}
-	tx, err := conn.DB.Begin()
-	if err != nil {
-		return 21, err, nil
-	}
 
 	newPatient.Lname, _ = utils.ToWin1251(strings.ToUpper(newPatient.Lname))
 	newPatient.Fname, _ = utils.ToWin1251(strings.ToUpper(newPatient.Fname))
@@ -44,11 +33,17 @@ func (p *patient) New(newPatient *types.NewPatient) (int, error, *[]types.Patien
 		newPatient.Lname = "-" + strings.Trim(newPatient.Lname, "-")
 	}
 
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 21, err, nil
+	}
 	defer tx.Rollback()
-	model = models.Model.Patient
+
 	if !newPatient.IsForced {
-		found, err := model.FindByFIO(newPatient.Lname, newPatient.Fname, newPatient.Sname)
+		found, err := model.FindByFIO(newPatient.Lname, newPatient.Fname, newPatient.Sname, tx)
 		if err != nil {
+			tx.Rollback()
 			return -1, err, nil
 		}
 		if len(*found) > 0 {
@@ -56,15 +51,18 @@ func (p *patient) New(newPatient *types.NewPatient) (int, error, *[]types.Patien
 		}
 	}
 
-	id, err := model.GetMaxPatientId()
+	id, err := model.GetMaxPatientId(tx)
 	if err != nil {
+		tx.Rollback()
 		return -1, err, nil
 	}
 	newPatient.PatientId = id + 1
 	_, err = model.New(newPatient, tx)
 	if err != nil {
+		tx.Rollback()
 		return -1, err, nil
 	}
+	newPatient.IsForced = true
 
 	err = tx.Commit()
 	if err != nil {
@@ -92,13 +90,20 @@ func (p *patient) FindByFio(lname, fname, sname string) (*[]types.Patient, error
 	}
 
 	model := models.Model.Patient
-	lname, _ = utils.ToWin1251(lname)
-	fname, _ = utils.ToWin1251(fname)
-	sname, _ = utils.ToWin1251(sname)
-	data, err := model.FindByFIO(lname, fname, sname)
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
+	defer tx.Rollback()
+
+	lname, _ = utils.ToWin1251(lname)
+	fname, _ = utils.ToWin1251(fname)
+	sname, _ = utils.ToWin1251(sname)
+	data, err := model.FindByFIO(lname, fname, sname, tx)
+	if err != nil {
+		return nil, err
+	}
+	tx.Commit()
 
 	cachePat.Set(cacheName, data, 0)
 	return data, nil
@@ -112,22 +117,24 @@ func (p *patient) FindById(id int64, isCache bool) (*types.Patient, error) {
 		return item.(*types.Patient), nil
 	}
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer tx.Rollback()
 
-	model := models.Init(conn.DB).Patient
-	err, tx := CreateTx()
-	if err != nil {
-		return nil, err
-	}
+	model := models.Model.Patient
 	data, err := model.Get(id, tx)
 	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 
+	cache.AppCache.Set(cacheName, data, 0)
 	return data, nil
 }
 
@@ -138,9 +145,18 @@ func (p *patient) FindUchet(id int64, isCache bool) (*[]models.FindUchetS, error
 		return item.(*[]models.FindUchetS), nil
 	}
 	model := models.Model.Patient
-	data, err := model.FindUchet(id, 1000, 0)
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.FindUchet(id, 1000, 0, tx)
 	if err != nil {
 		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 	cache.AppCache.Set(cacheName, data, 0)
@@ -154,9 +170,18 @@ func (p *patient) FindLastUchet(id int64, isCache bool) (*models.FindUchetS, err
 		return item.(*models.FindUchetS), nil
 	}
 	model := models.Model.Patient
-	data, err := model.FindLastUchet(id)
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.FindLastUchet(id, tx)
 	if err != nil {
 		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 	cache.AppCache.Set(cacheName, data, 30)
@@ -169,10 +194,20 @@ func (p *patient) GetAddress(id int64, isCache bool) (string, error) {
 	if ok && isCache {
 		return item.(string), nil
 	}
+
 	model := models.Model.Patient
-	data, err := model.GetAddress(id)
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+	data, err := model.GetAddress(id, tx)
 	if err != nil {
 		ERROR.Println(err.Error())
+		return "", err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return "", err
 	}
 	cache.AppCache.Set(cacheName, data, 30)
@@ -188,9 +223,18 @@ func (p *patient) HistoryVisits(id int, isCache bool) (*[]models.HistoryVisit, e
 		}
 	}
 	model := models.Model.Patient
-	data, err := model.HistoryVisits(id)
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.HistoryVisits(id, tx)
 	if err != nil {
 		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 	cache.AppCache.Set(cacheName, data, 0)
@@ -204,9 +248,18 @@ func (p *patient) HistoryHospital(id int) (*[]models.HistoryHospital, error) {
 		return item.(*[]models.HistoryHospital), nil
 	}
 	model := models.Model.Patient
-	data, err := model.HistoryHospital(id)
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.HistoryHospital(id, tx)
 	if err != nil {
 		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 	cache.AppCache.Set(cacheName, data, 0)
@@ -217,7 +270,12 @@ func (p *patient) NewVisit(visit *types.NewVisit) (int, error) {
 	fmt.Println(*visit)
 	visit.Normalize()
 	model := models.Model.Patient
-	lastUchet, err := model.FindLastUchet(visit.PatientId)
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 20, err
+	}
+	defer tx.Rollback()
+	lastUchet, err := model.FindLastUchet(visit.PatientId, tx)
 	if err != nil {
 		return 100, err
 	}
@@ -228,8 +286,9 @@ func (p *patient) NewVisit(visit *types.NewVisit) (int, error) {
 	}
 
 	//-в этот день не было посещений
-	isVisisted, err := model.IsVisited(visit)
+	isVisisted, err := model.IsVisited(visit, tx)
 	if err != nil {
+		tx.Rollback()
 		return 102, err
 	}
 
@@ -237,14 +296,11 @@ func (p *patient) NewVisit(visit *types.NewVisit) (int, error) {
 		return 202, nil
 	}
 
-	conn, err := database.Connect()
-	if err != nil {
-		return 20, err
-	}
-	tx, err := conn.DB.Begin()
+	err, tx = models.Model.CreateTx()
 	if err != nil {
 		return 21, err
 	}
+	defer tx.Rollback()
 
 	//Обрезаем до 10, т.к. в посещениях длина диагноза 10
 	if len(visit.Diagnose) > 10 {
@@ -282,16 +338,13 @@ func (p *patient) NewVisit(visit *types.NewVisit) (int, error) {
 func (p *patient) NewProf(visit *types.NewProf) (int, error) {
 	fmt.Println(*visit)
 	visit.Normalize()
-	model := models.Model.Patient
 
-	conn, err := database.Connect()
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return 20, err
 	}
-	tx, err := conn.DB.Begin()
-	if err != nil {
-		return 21, err
-	}
+	defer tx.Rollback()
 
 	if visit.Count == 0 {
 		return 203, nil
@@ -322,6 +375,11 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 
 	sprModel := models.Model.Spr
 	patientModel := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 20, err
+	}
+	defer tx.Rollback()
 
 	address, err := p.GetAddress(pat.Id, false)
 	if err != nil {
@@ -338,7 +396,7 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 		return -1, err
 	}
 
-	isClose, err := sprModel.IsClosedSection(lastReg.Section)
+	isClose, err := sprModel.IsClosedSection(lastReg.Section, tx)
 	if err != nil {
 		return -1, err
 	}
@@ -358,7 +416,7 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 		reg.Category = lastReg.Category
 	}
 
-	countJudgment, err := patientModel.GetCountJudgment(reg.PatientId)
+	countJudgment, err := patientModel.GetCountJudgment(reg.PatientId, tx)
 	if err != nil {
 		return -1, err
 	}
@@ -407,7 +465,7 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 		return 312, nil
 	}
 
-	isClose, err = sprModel.IsClosedSection(reg.Section)
+	isClose, err = sprModel.IsClosedSection(reg.Section, tx)
 	if err != nil {
 		return -1, err
 	}
@@ -416,7 +474,7 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 	}
 
 	if reg.Reason[0] == 'S' {
-		inHospital, err := patientModel.IsInHospital(reg.PatientId)
+		inHospital, err := patientModel.IsInHospital(reg.PatientId, tx)
 		if err != nil {
 			return -1, err
 		}
@@ -429,7 +487,7 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 	if err != nil {
 		return -1, err
 	}
-	countReg, err := patientModel.GetCountRegDataInDate(reg.PatientId, reg.Section, regDate)
+	countReg, err := patientModel.GetCountRegDataInDate(reg.PatientId, reg.Section, regDate, tx)
 	if err != nil {
 		return -1, err
 	}
@@ -446,18 +504,9 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 		return 360, nil
 	}
 
-	conn, err := database.Connect()
-	if err != nil {
-		return 20, err
-	}
-	tx, err := conn.DB.Begin()
-	if err != nil {
-		return 21, err
-	}
-
-	defer tx.Rollback()
 	_, err = patientModel.InsertReg(*reg, tx)
 	if err != nil {
+		tx.Rollback()
 		return 350, err
 	}
 	if reg.Reason == consts.REAS_NEW {
@@ -477,13 +526,18 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 func (p *patient) NewRegisterTransfer(reg *types.NewRegisterTransfer) (int, error) {
 	sprModel := models.Model.Spr
 	patientModel := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 20, err
+	}
+	defer tx.Rollback()
 
 	lastReg, err := p.FindLastUchet(reg.PatientId, false)
 	if err != nil {
 		return -1, err
 	}
 
-	isClose, err := sprModel.IsClosedSection(lastReg.Section)
+	isClose, err := sprModel.IsClosedSection(lastReg.Section, tx)
 	if err != nil {
 		return -1, err
 	}
@@ -491,7 +545,7 @@ func (p *patient) NewRegisterTransfer(reg *types.NewRegisterTransfer) (int, erro
 		return 303, nil
 	}
 
-	isClose, err = sprModel.IsClosedSection(reg.Section)
+	isClose, err = sprModel.IsClosedSection(reg.Section, tx)
 	if err != nil {
 		return -1, err
 	}
@@ -541,16 +595,12 @@ func (p *patient) NewRegisterTransfer(reg *types.NewRegisterTransfer) (int, erro
 		return 360, nil
 	}
 
-	conn, err := database.Connect()
+	err, tx = models.Model.CreateTx()
 	if err != nil {
 		return 20, err
 	}
-	tx, err := conn.DB.Begin()
-	if err != nil {
-		return 21, err
-	}
-
 	defer tx.Rollback()
+
 	if err != nil {
 		return -1, err
 	}
@@ -598,10 +648,19 @@ func (p *patient) HistorySindrom(id int, isCache bool) (*[]models.HistorySindrom
 			return item.(*[]models.HistorySindrom), nil
 		}
 	}
-	model := models.Model.Patient
-	data, err := model.HistorySindrom(id)
+	err, tx := models.Model.CreateTx()
 	if err != nil {
-		ERROR.Println(err.Error())
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := models.Model.Patient.HistorySindrom(id, tx)
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 	cache.AppCache.Set(cacheName, data, 0)
@@ -609,19 +668,13 @@ func (p *patient) HistorySindrom(id int, isCache bool) (*[]models.HistorySindrom
 }
 
 func (p *patient) NewSindrom(sindrom *types.Sindrom) (int, error) {
-
-	conn, err := database.Connect()
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return 20, err
 	}
-	tx, err := conn.DB.Begin()
-	if err != nil {
-		return 21, err
-	}
 
-	model := models.Model.Patient
-
-	history, err := model.HistorySindrom(sindrom.PatientId)
+	history, err := model.HistorySindrom(sindrom.PatientId, tx)
 	if err != nil {
 		return -1, err
 	}
@@ -659,13 +712,10 @@ func (p *patient) NewSindrom(sindrom *types.Sindrom) (int, error) {
 
 func (p *patient) RemoveSindrom(sindrom *types.Sindrom) (int, error) {
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
-		return 20, err
-	}
-	tx, err := conn.DB.Begin()
-	if err != nil {
-		return 21, err
+		ERROR.Println(err)
+		return 20, nil
 	}
 
 	model := models.Model.Patient
@@ -673,12 +723,14 @@ func (p *patient) RemoveSindrom(sindrom *types.Sindrom) (int, error) {
 	_, err = model.RemoveSindrom(*sindrom, tx)
 	if err != nil {
 		tx.Rollback()
-		return 200, err
+		ERROR.Println(err)
+		return 200, nil
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return 22, err
+		ERROR.Println(err)
+		return 22, nil
 	}
 
 	return 0, nil
@@ -693,9 +745,18 @@ func (p *patient) FindInvalid(id int64, isCache bool) (*[]models.FindInvalid, er
 		}
 	}
 	model := models.Model.Patient
-	data, err := model.FindInvalid(id)
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.FindInvalid(id, tx)
 	if err != nil {
 		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 	cache.AppCache.Set(cacheName, data, 0)
@@ -703,13 +764,9 @@ func (p *patient) FindInvalid(id int64, isCache bool) (*[]models.FindInvalid, er
 }
 
 func (p *patient) NewInvalid(newInvalid *types.NewInvalid) (int, error) {
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return 20, err
-	}
-	tx, err := conn.DB.Begin()
-	if err != nil {
-		return 21, err
 	}
 	defer tx.Rollback()
 
@@ -755,13 +812,9 @@ func (p *patient) NewInvalid(newInvalid *types.NewInvalid) (int, error) {
 }
 
 func (p *patient) UpdInvalid(newInvalid *types.NewInvalid) (int, error) {
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return 20, err
-	}
-	tx, err := conn.DB.Begin()
-	if err != nil {
-		return 21, err
 	}
 	defer tx.Rollback()
 
@@ -772,9 +825,10 @@ func (p *patient) UpdInvalid(newInvalid *types.NewInvalid) (int, error) {
 		return 397, err
 	}
 
-	invalids, err := model.FindInvalid(newInvalid.PatientId)
+	invalids, err := model.FindInvalid(newInvalid.PatientId, tx)
 	if err != nil {
-		return -1, err
+		tx.Rollback()
+		return 21, err
 	}
 	if len(*invalids) == 0 {
 		return 398, nil
@@ -782,12 +836,13 @@ func (p *patient) UpdInvalid(newInvalid *types.NewInvalid) (int, error) {
 
 	_, err = model.UpdInvalid(newInvalid, tx)
 	if err != nil {
-		return -1, err
+		tx.Rollback()
+		return 21, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return -1, err
+		return 22, err
 	}
 	return 0, nil
 }
@@ -801,9 +856,19 @@ func (p *patient) FindCustody(id int64, isCache bool) (*[]types.FindCustody, err
 		}
 	}
 	model := models.Model.Patient
-	data, err := model.FindCustody(id)
+	err, tx := models.Model.CreateTx()
 	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.FindCustody(id, tx)
+	if err != nil {
+		tx.Rollback()
 		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 	cache.AppCache.Set(cacheName, data, 0)
@@ -821,22 +886,23 @@ func (p *patient) NewCustody(custody *types.NewCustody) (int, error) {
 		return 402, nil
 	}
 
-	err, tx := CreateTx()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
-		return 21, err
+		return 20, err
 	}
 	defer tx.Rollback()
 
 	model := models.Model.Patient
 	_, err = model.NewCustody(custody, tx)
 	if err != nil {
+		tx.Rollback()
 		ERROR.Println(err.Error())
-		return -1, err
+		return 21, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return -1, err
+		return 22, err
 	}
 	return 0, nil
 }
@@ -853,15 +919,16 @@ func (p *patient) UpdCustody(custody *types.NewCustody) (int, error) {
 		return 401, err
 	}
 
-	err, tx := CreateTx()
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return 21, err
 	}
 	defer tx.Rollback()
 
-	model := models.Model.Patient
 	_, err = model.UpdCustody(custody, tx)
 	if err != nil {
+		tx.Rollback()
 		ERROR.Println(err.Error())
 		return -1, err
 	}
@@ -882,9 +949,19 @@ func (p *patient) FindVaccination(id int64, isCache bool) (*[]types.FindVaccinat
 		}
 	}
 	model := models.Model.Patient
-	data, err := model.FindVaccination(id)
+	err, tx := models.Model.CreateTx()
 	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.FindVaccination(id, tx)
+	if err != nil {
+		tx.Rollback()
 		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 	cache.AppCache.Set(cacheName, data, 0)
@@ -900,9 +977,19 @@ func (p *patient) FindInfection(id int64, isCache bool) (*[]types.FindInfection,
 		}
 	}
 	model := models.Model.Patient
-	data, err := model.FindInfection(id)
+	err, tx := models.Model.CreateTx()
 	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.FindInfection(id, tx)
+	if err != nil {
+		tx.Rollback()
 		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 	cache.AppCache.Set(cacheName, data, 0)
@@ -910,31 +997,34 @@ func (p *patient) FindInfection(id int64, isCache bool) (*[]types.FindInfection,
 }
 
 func (p *patient) UpdPassport(passport *types.Patient) (int, error) {
-
-	err, tx := CreateTx()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
-		return 21, err
+		return 20, err
 	}
 	defer tx.Rollback()
 
 	model := models.Model.Patient
 	_, err = model.UpdPassport(passport, tx)
 	if err != nil {
+		tx.Rollback()
 		ERROR.Println(err.Error())
-		return -1, err
+		return 21, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return -1, err
+		return 22, err
 	}
 	return 0, nil
 }
 
 func (p *patient) UpdAddress(address *types.Patient) (int, error) {
 	model := models.Model.Patient
-
-	err, tx := CreateTx()
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 20, err
+	}
+	defer tx.Rollback()
 	if err != nil {
 		return -1, err
 	}
@@ -958,9 +1048,9 @@ func (p *patient) UpdAddress(address *types.Patient) (int, error) {
 	if address.Domicile == 0 {
 		address.Domicile = patient.Domicile
 	}
-	err, tx = CreateTx()
+	err, tx = models.Model.CreateTx()
 	if err != nil {
-		return 21, err
+		return 20, err
 	}
 	defer tx.Rollback()
 	_, err = model.UpdAddress(address, tx)
@@ -985,9 +1075,18 @@ func (p *patient) GetSection22(id int64, isCache bool) (*[]types.ST22, error) {
 		}
 	}
 	model := models.Model.Patient
-	data, err := model.GetSection22(id)
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetSection22(id, tx)
 	if err != nil {
 		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 	cache.AppCache.Set(cacheName, data, 0)
@@ -1007,20 +1106,146 @@ func (p *patient) NewSection22(section *types.ST22) (int, error) {
 		return 411, err
 	}
 
-	err, tx := CreateTx()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
-		return 21, err
+		return 20, err
 	}
 	defer tx.Rollback()
 	_, err = model.NewSection22(section, tx)
 	if err != nil {
+		tx.Rollback()
 		ERROR.Println(err.Error())
-		return -1, err
+		return 21, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return -1, err
+		return 22, err
+	}
+	return 0, nil
+}
+
+func (p *patient) SOD(id int64, isCache bool) (*[]types.SOD, error) {
+	cacheName := fmt.Sprintf("find_sod_%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]types.SOD), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.SOD(id, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) OODLast(id int64, isCache bool) (*types.OOD, error) {
+	cacheName := fmt.Sprintf("find_ood_%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*types.OOD), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.OODLast(id, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) FindSection29(id int64, isCache bool) (*[]types.FindSection29, error) {
+	cacheName := fmt.Sprintf("find_findSection29_%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]types.FindSection29), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.FindSection29(id, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) NewOOD(ood *types.OOD) (int, error) {
+	model := models.Model.Patient
+
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 20, err
+	}
+	defer tx.Rollback()
+	_, err = model.NewOOD(ood, tx)
+	if err != nil {
+		tx.Rollback()
+		ERROR.Println(err.Error())
+		return 21, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
+	}
+	return 0, nil
+}
+
+func (p *patient) NewSOD(sod *types.SOD) (int, error) {
+	model := models.Model.Patient
+
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 20, err
+	}
+	defer tx.Rollback()
+	_, err = model.NewSOD(sod, tx)
+	if err != nil {
+		tx.Rollback()
+		ERROR.Println(err.Error())
+		return 21, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
 	}
 	return 0, nil
 }

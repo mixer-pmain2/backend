@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"pmain2/internal/database"
 	"pmain2/internal/models"
 	"pmain2/internal/types"
 	"pmain2/pkg/cache"
@@ -24,15 +23,19 @@ func (m *spr) GetPodr() (*map[int]string, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetPodr()
+	defer tx.Rollback()
+	data, err := model.GetPodr(tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -49,15 +52,19 @@ func (s *spr) GetPrava() (*[]models.PravaDict, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetPrava()
+	defer tx.Rollback()
+	data, err := model.GetPrava(tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -74,15 +81,19 @@ func (s *spr) GetSprVisit() (*map[int]string, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetSprVisit()
+	defer tx.Rollback()
+	data, err := model.GetSprVisit(tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -99,15 +110,19 @@ func (s *spr) GetDiags(diag string) (*[]models.DiagM, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetDiags(diag)
+	defer tx.Rollback()
+	data, err := model.GetDiags(diag, tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -124,14 +139,13 @@ func (s *spr) GetParams() (*[]models.ServiceM, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetParams()
+	defer tx.Rollback()
+	data, err := model.GetParams(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +158,11 @@ func (s *spr) GetParams() (*[]models.ServiceM, error) {
 		ParamS: utils.ToDate(time.Date(time.Now().Year(), 1, 1, 0, 0, 0, 0, time.Local)),
 	},
 	}...)
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
 
 	cache.AppCache.Set(cacheName, data, time.Minute*10)
 	return data, nil
@@ -158,15 +177,19 @@ func (s *spr) GetSprReason() (*map[string]string, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetSprReason()
+	defer tx.Rollback()
+	data, err := model.GetSprReason(tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -183,15 +206,19 @@ func (s *spr) GetSprInvalidKind() (*map[string]string, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetSprInvalidKind()
+	defer tx.Rollback()
+	data, err := model.GetSprInvalidKind(tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -208,15 +235,19 @@ func (s *spr) GetSprInvalidChildAnomaly() (*map[string]string, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetSprInvalidChildAnomaly()
+	defer tx.Rollback()
+	data, err := model.GetSprInvalidChildAnomaly(tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -233,15 +264,19 @@ func (s *spr) GetSprInvalidChildLimit() (*map[string]string, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetSprInvalidChildLimit()
+	defer tx.Rollback()
+	data, err := model.GetSprInvalidChildLimit(tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -258,15 +293,19 @@ func (s *spr) GetSprInvalidReason() (*map[string]string, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetSprInvalidReason()
+	defer tx.Rollback()
+	data, err := model.GetSprInvalidReason(tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -283,15 +322,19 @@ func (s *spr) GetSprCustodyWho() (*map[string]string, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetSprCustodyWho()
+	defer tx.Rollback()
+	data, err := model.GetSprCustodyWho(tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -308,20 +351,25 @@ func (s *spr) FindRepublic(find *types.Find) (*[]types.Spr, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer tx.Rollback()
 
 	find.Name, err = utils.ToWin1251(find.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	model := models.Init(conn.DB).Spr
-	data, err := model.FindRepublic(find)
+	model := models.Model.Spr
+	data, err := model.FindRepublic(find, tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -338,20 +386,25 @@ func (s *spr) FindRegion(find *types.Find) (*[]types.Spr, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer tx.Rollback()
 
 	find.Name, err = utils.ToWin1251(find.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	model := models.Init(conn.DB).Spr
-	data, err := model.FindRegion(find)
+	model := models.Model.Spr
+	data, err := model.FindRegion(find, tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -368,20 +421,25 @@ func (s *spr) FindDistrict(find *types.Find) (*[]types.Spr, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer tx.Rollback()
 
 	find.Name, err = utils.ToWin1251(find.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	model := models.Init(conn.DB).Spr
-	data, err := model.FindDistrict(find)
+	model := models.Model.Spr
+	data, err := model.FindDistrict(find, tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -398,20 +456,25 @@ func (s *spr) FindArea(find *types.Find) (*[]types.Spr, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer tx.Rollback()
 
 	find.Name, err = utils.ToWin1251(find.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	model := models.Init(conn.DB).Spr
-	data, err := model.FindArea(find)
+	model := models.Model.Spr
+	data, err := model.FindArea(find, tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -428,20 +491,25 @@ func (s *spr) FindStreet(find *types.Find) (*[]types.Spr, error) {
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer tx.Rollback()
 
 	find.Name, err = utils.ToWin1251(find.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	model := models.Init(conn.DB).Spr
-	data, err := model.FindStreet(find)
+	model := models.Model.Spr
+	data, err := model.FindStreet(find, tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -458,15 +526,19 @@ func (s *spr) FindSections(find *types.FindI, isCache bool) (*[]types.SprUchN, e
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.FindSections(find)
+	defer tx.Rollback()
+	data, err := model.FindSections(find, tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -483,15 +555,19 @@ func (s *spr) FindSectionDoctor(find *types.FindI, isCache bool) (*[]types.Locat
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.FindSectionDoctor(find)
+	defer tx.Rollback()
+	data, err := model.FindSectionDoctor(find, tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 
@@ -508,15 +584,19 @@ func (s *spr) GetDoctors(find *types.FindI, isCache bool) (*[]types.Doctor, erro
 		return res, nil
 	}
 
-	conn, err := database.Connect()
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	model := models.Init(conn.DB).Spr
-	data, err := model.GetDoctors(find)
+	defer tx.Rollback()
+	data, err := model.GetDoctors(find, tx)
 	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return nil, err
 	}
 

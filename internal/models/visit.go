@@ -9,8 +9,8 @@ type VisitModel struct {
 	DB *sql.DB
 }
 
-func createVisit(db *sql.DB) *VisitModel {
-	return &VisitModel{DB: db}
+func createVisit() *VisitModel {
+	return &VisitModel{}
 }
 
 func (m *VisitModel) GetVisits(patientId, numPage, pageSize int) (*[]Visit, error) {

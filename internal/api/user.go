@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"pmain2/internal/controller"
+	session2 "pmain2/internal/session"
 	"pmain2/internal/types"
+	"pmain2/pkg/utils"
 	"strconv"
 
 	"github.com/gorilla/mux"
 
-	"pmain2/internal/database"
 	"pmain2/internal/models"
 )
 
@@ -30,14 +31,21 @@ func (u *userApi) GetUser(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		ERROR.Println(err)
+		return err
+	}
+	defer tx.Rollback()
+
+	model := models.Model.User
+	data, err := model.Get(id, tx)
 	if err != nil {
 		return err
 	}
-
-	model := models.Init(conn.DB).User
-	data, err := model.Get(id)
+	err = tx.Commit()
 	if err != nil {
+		ERROR.Println(err)
 		return err
 	}
 
@@ -55,17 +63,23 @@ func (u *userApi) Signin(w http.ResponseWriter, r *http.Request) error {
 		fmt.Fprintf(w, `{"success": false}`)
 	}
 
-	conn, err := database.Connect()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
 		return err
 	}
-	model := models.Init(conn.DB).User
+	defer tx.Rollback()
+	model := models.Model.User
 	id, err := strconv.Atoi(username)
 	if err != nil {
 		return err
 	}
-	data, err := model.Get(id)
+	data, err := model.Get(id, tx)
 	if err != nil {
+		return err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
 		return err
 	}
 
@@ -75,6 +89,70 @@ func (u *userApi) Signin(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	fmt.Fprintf(w, string(res))
+	return nil
+}
+
+func (u *userApi) Login(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	login := types.Login{}
+	getParams(r, &login)
+
+	c := controller.Init()
+	var err error
+	user, _ := utils.ToWin1251(login.Username)
+	pass, _ := utils.ToWin1251(login.Password) // utils.ToASCII(password)
+	isAuth, err := c.User.IsAuth(user, pass)
+	if err != nil {
+		ERROR.Println(err)
+		return err
+	}
+	session, _ := session2.Store.Get(r, "user")
+	if isAuth {
+		session.Values["isAuth"] = true
+
+		err, tx := models.Model.CreateTx()
+		if err != nil {
+			ERROR.Println(err)
+			return err
+		}
+		defer tx.Rollback()
+		model := models.Model.User
+		id, err := strconv.Atoi(login.Username)
+		if err != nil {
+			return err
+		}
+		data, err := model.Get(id, tx)
+		if err != nil {
+			return err
+		}
+		err = tx.Commit()
+		if err != nil {
+			ERROR.Println(err)
+			return err
+		}
+		session.Values["lname"] = data.Lname
+		session.Values["fname"] = data.Fname
+		session.Values["sname"] = data.Sname
+		session.Values["id"] = data.Id
+
+		err = session.Save(r, w)
+		if err != nil {
+			return err
+		}
+		res := types.HttpResponse{Success: true, Error: 0}
+		res.Data = data
+		mRes, err := json.Marshal(res)
+		fmt.Fprintf(w, string(mRes))
+		return nil
+	}
+	session.Values["isAuth"] = false
+	session.Save(r, w)
+
+	fmt.Fprintf(w, string(resSuccess(1)))
 	return nil
 }
 

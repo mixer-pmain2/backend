@@ -1,0 +1,1 @@
+insert into migrations (name) values ('00001');

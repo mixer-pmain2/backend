@@ -11,11 +11,10 @@ import (
 )
 
 type SprModel struct {
-	DB *sql.DB
 }
 
-func createSpr(db *sql.DB) *SprModel {
-	return &SprModel{DB: db}
+func createSpr() *SprModel {
+	return &SprModel{}
 }
 
 type PodrDict struct {
@@ -23,12 +22,13 @@ type PodrDict struct {
 	Name string `json:"name"`
 }
 
-func (m *SprModel) GetPodr() (*map[int]string, error) {
+func (m *SprModel) GetPodr(tx *sql.Tx) (*map[int]string, error) {
 	sql := fmt.Sprintf(`SELECT MASKA1, NA_ME 
 FROM SPR_PRAVA svn 
 WHERE KOD1 = 1 AND MASKA1 > 0 and visible = 1`)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -56,13 +56,14 @@ type PravaDict struct {
 	Name string `json:"name"`
 }
 
-func (m *SprModel) GetPrava() (*[]PravaDict, error) {
+func (m *SprModel) GetPrava(tx *sql.Tx) (*[]PravaDict, error) {
 	sql := fmt.Sprintf(`SELECT MASKA1, MASKA2, NA_ME 
 FROM SPR_PRAVA sp  
 WHERE KOD1 = 2 and visible = 1
 order by maska1, maska2`)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -88,12 +89,13 @@ type SprVisitD struct {
 	Name string
 }
 
-func (m *SprModel) GetSprVisit() (*map[int]string, error) {
+func (m *SprModel) GetSprVisit(tx *sql.Tx) (*map[int]string, error) {
 	sql := fmt.Sprintf(`SELECT MASKA1, NA_ME 
 FROM SPR_VISIT_N svn 
 WHERE KOD1 = 3 AND MASKA1 > 0`)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -122,10 +124,11 @@ type DiagM struct {
 	HaveChildren bool   `json:"haveChildren"`
 }
 
-func (m *SprModel) GetDiags(diag string) (*[]DiagM, error) {
+func (m *SprModel) GetDiags(diag string, tx *sql.Tx) (*[]DiagM, error) {
 	sql := fmt.Sprintf(`SELECT kod1, kod2, nam, uroven FROM diag1m where kod1 = '%s'`, diag)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -159,10 +162,11 @@ type ServiceM struct {
 	DateEnd   string  `json:"dateEnd"`
 }
 
-func (m *SprModel) GetParams() (*[]ServiceM, error) {
+func (m *SprModel) GetParams(tx *sql.Tx) (*[]ServiceM, error) {
 	sql := fmt.Sprintf(`select param, PARAM_I, PARAM_D, PARAM_S, KOMMENT, DN, DK from servis`)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -193,12 +197,13 @@ func (m *SprModel) GetParams() (*[]ServiceM, error) {
 
 }
 
-func (m *SprModel) GetSprReason() (*map[string]string, error) {
+func (m *SprModel) GetSprReason(tx *sql.Tx) (*map[string]string, error) {
 	sql := fmt.Sprintf(`select kod1, na_me from spr_med where spr_nam = 'reg_reas1'
 union 
 select kod1, NA_ME from spr_med where spr_nam = 'exit_reas' and SUBSTR(kod1,1,1) = 'S' AND KOD2 = '1'`)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -224,10 +229,10 @@ select kod1, NA_ME from spr_med where spr_nam = 'exit_reas' and SUBSTR(kod1,1,1)
 
 }
 
-func (m *SprModel) IsClosedSection(section int) (bool, error) {
+func (m *SprModel) IsClosedSection(section int, tx *sql.Tx) (bool, error) {
 	sqlQuery := fmt.Sprintf(`select First 1 CLOSED_DAT from closed_uch where uch = %v`, section)
 	INFO.Println(sqlQuery)
-	row := m.DB.QueryRow(sqlQuery)
+	row := tx.QueryRow(sqlQuery)
 
 	isClose := false
 	var _closeDate string
@@ -254,12 +259,13 @@ func (m *SprModel) IsClosedSection(section int) (bool, error) {
 
 }
 
-func (m *SprModel) GetSprInvalidKind() (*map[string]string, error) {
+func (m *SprModel) GetSprInvalidKind(tx *sql.Tx) (*map[string]string, error) {
 	sql := fmt.Sprintf(`select kod2, na_me from spr_visit_n
 where kod1 = 6 and kod2 > 0 and visible = 1
 order by na_me`)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -285,12 +291,13 @@ order by na_me`)
 
 }
 
-func (m *SprModel) GetSprInvalidChildAnomaly() (*map[string]string, error) {
+func (m *SprModel) GetSprInvalidChildAnomaly(tx *sql.Tx) (*map[string]string, error) {
 	sql := fmt.Sprintf(`select kod2, na_me from spr_visit_n
 where kod1 = 14 and kod2 > 0 and visible = 1
 order by na_me`)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -316,11 +323,12 @@ order by na_me`)
 
 }
 
-func (m *SprModel) GetSprInvalidChildLimit() (*map[string]string, error) {
+func (m *SprModel) GetSprInvalidChildLimit(tx *sql.Tx) (*map[string]string, error) {
 	sql := fmt.Sprintf(`select kod2, na_me from spr_visit_n
 where kod1 = 12 and kod2 > 0`)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -346,11 +354,12 @@ where kod1 = 12 and kod2 > 0`)
 
 }
 
-func (m *SprModel) GetSprInvalidReason() (*map[string]string, error) {
+func (m *SprModel) GetSprInvalidReason(tx *sql.Tx) (*map[string]string, error) {
 	sql := fmt.Sprintf(`select kod2, na_me from spr_visit_n
 where kod1 = 4 and kod2 > 0 and visible = 1`)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -376,11 +385,12 @@ where kod1 = 4 and kod2 > 0 and visible = 1`)
 
 }
 
-func (m *SprModel) GetSprCustodyWho() (*map[string]string, error) {
+func (m *SprModel) GetSprCustodyWho(tx *sql.Tx) (*map[string]string, error) {
 	sql := fmt.Sprintf(`select kod1, NA_ME from spr_med
 where spr_nam = 'care'`)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -406,13 +416,14 @@ where spr_nam = 'care'`)
 
 }
 
-func (m *SprModel) FindRepublic(find *types.Find) (*[]types.Spr, error) {
+func (m *SprModel) FindRepublic(find *types.Find, tx *sql.Tx) (*[]types.Spr, error) {
 	sql := fmt.Sprintf(`select kod1, na_me from spr_adress
 where spr_nam = 'republic' and na_me >= ?
 order by na_me`)
 	INFO.Println(sql)
-	stmt, err := m.DB.Prepare(sql)
+	stmt, err := tx.Prepare(sql)
 	rows, err := stmt.Query(find.Name)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -431,14 +442,16 @@ order by na_me`)
 
 }
 
-func (m *SprModel) FindRegion(find *types.Find) (*[]types.Spr, error) {
+func (m *SprModel) FindRegion(find *types.Find, tx *sql.Tx) (*[]types.Spr, error) {
 	sql := fmt.Sprintf(`select kod1, na_me from spr_adress
 where spr_nam = 'region' and na_me >= ?
 order by na_me
 `)
 	INFO.Println(sql)
-	stmt, err := m.DB.Prepare(sql)
+	stmt, err := tx.Prepare(sql)
+	defer stmt.Close()
 	rows, err := stmt.Query(find.Name)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -457,13 +470,15 @@ order by na_me
 
 }
 
-func (m *SprModel) FindDistrict(find *types.Find) (*[]types.Spr, error) {
+func (m *SprModel) FindDistrict(find *types.Find, tx *sql.Tx) (*[]types.Spr, error) {
 	sql := fmt.Sprintf(`select kod1, na_me from spr_adress
 where spr_nam = 'district' and na_me >= ?
 order by na_me`)
 	INFO.Println(sql)
-	stmt, err := m.DB.Prepare(sql)
+	stmt, err := tx.Prepare(sql)
+	defer stmt.Close()
 	rows, err := stmt.Query(find.Name)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -482,13 +497,15 @@ order by na_me`)
 
 }
 
-func (m *SprModel) FindArea(find *types.Find) (*[]types.Spr, error) {
+func (m *SprModel) FindArea(find *types.Find, tx *sql.Tx) (*[]types.Spr, error) {
 	sql := fmt.Sprintf(`select kod1, na_me, kod2 from spr_adress
 where spr_nam = 'pop_area' and na_me >= ?
 order by na_me`)
 	INFO.Println(sql)
-	stmt, err := m.DB.Prepare(sql)
+	stmt, err := tx.Prepare(sql)
+	defer stmt.Close()
 	rows, err := stmt.Query(find.Name)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -508,13 +525,15 @@ order by na_me`)
 
 }
 
-func (m *SprModel) FindStreet(find *types.Find) (*[]types.Spr, error) {
+func (m *SprModel) FindStreet(find *types.Find, tx *sql.Tx) (*[]types.Spr, error) {
 	sql := fmt.Sprintf(`select kod1, na_me from spr_adress
 where spr_nam = 'street' and na_me >= ?
 order by na_me`)
 	INFO.Println(sql)
-	stmt, err := m.DB.Prepare(sql)
+	stmt, err := tx.Prepare(sql)
+	defer stmt.Close()
 	rows, err := stmt.Query(find.Name)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -533,14 +552,16 @@ order by na_me`)
 
 }
 
-func (m *SprModel) FindSections(find *types.FindI) (*[]types.SprUchN, error) {
+func (m *SprModel) FindSections(find *types.FindI, tx *sql.Tx) (*[]types.SprUchN, error) {
 	sql := fmt.Sprintf(`SELECT nom_z, uch, KOMMENT, PLAN_P, CHAS, SPEC, disp FROM SPR_UCH_N sun`)
 	if find.Name > 0 {
 		sql = fmt.Sprintf(`%s where bin_and(disp,?) = ? and uch >= 10`, sql)
 	}
 	INFO.Println(sql)
-	stmt, err := m.DB.Prepare(sql)
+	stmt, err := tx.Prepare(sql)
+	defer stmt.Close()
 	rows, err := stmt.Query(find.Name, find.Name)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +580,7 @@ func (m *SprModel) FindSections(find *types.FindI) (*[]types.SprUchN, error) {
 
 }
 
-func (m *SprModel) FindSectionDoctor(find *types.FindI) (*[]types.LocationDoctor, error) {
+func (m *SprModel) FindSectionDoctor(find *types.FindI, tx *sql.Tx) (*[]types.LocationDoctor, error) {
 	sql := fmt.Sprintf(`SELECT du.uch, du.DOCK, sd.FIO, sd.IM, sd.OT, du.PODRAZ 
 FROM DOCK_UCH du
 LEFT JOIN spr_doct sd ON sd.KOD_DOCK = du.DOCK 
@@ -567,8 +588,10 @@ WHERE du.PRIZ = 1
 AND PODRAZ = ?
 ORDER BY uch`)
 	INFO.Println(sql)
-	stmt, err := m.DB.Prepare(sql)
+	stmt, err := tx.Prepare(sql)
+	defer stmt.Close()
 	rows, err := stmt.Query(find.Name)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -589,7 +612,7 @@ ORDER BY uch`)
 	return &data, nil
 }
 
-func (m *SprModel) GetDoctors(find *types.FindI) (*[]types.Doctor, error) {
+func (m *SprModel) GetDoctors(find *types.FindI, tx *sql.Tx) (*[]types.Doctor, error) {
 	sql := fmt.Sprintf(`SELECT KOD_DOCK_I, FIO, IM, OT, prava, z152
 FROM SPR_DOCT sd 
 WHERE kod = 1 AND dock = 1
@@ -597,8 +620,10 @@ AND bin_and(v_disp, ?) = ?
 and kod_dock <> 888888
 order by fio, im, ot`)
 	INFO.Println(sql)
-	stmt, err := m.DB.Prepare(sql)
+	stmt, err := tx.Prepare(sql)
+	defer stmt.Close()
 	rows, err := stmt.Query(find.Name, find.Name)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}

@@ -17,13 +17,15 @@ func (a *administration) DoctorLocation(location *types.NewDoctorLocation) (int,
 	fmt.Println(*location)
 	model := models.Model.Administration
 
-	err, tx := CreateTx()
+	err, tx := models.Model.CreateTx()
 	if err != nil {
-		return -1, err
+		return 21, err
 	}
+	defer tx.Rollback()
 
 	_, err = model.DisableSections(location.Unit, tx)
 	if err != nil {
+		tx.Rollback()
 		return 502, err
 	}
 	date, err := time.Parse("2006-01-02", location.Date)
@@ -32,6 +34,7 @@ func (a *administration) DoctorLocation(location *types.NewDoctorLocation) (int,
 	}
 	_, err = model.DeleteSectionsByDate(location.Unit, date, tx)
 	if err != nil {
+		tx.Rollback()
 		return 504, err
 	}
 

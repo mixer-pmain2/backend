@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"pmain2/internal/migration"
+	"pmain2/internal/report"
 	"syscall"
 	"time"
 
@@ -17,7 +19,9 @@ import (
 
 func init() {
 	application.InitLogger()
+	application.INFO.Println("Init apps...")
 	var err error
+	application.INFO.Println("Load config")
 	config.AppConfig, err = config.Create()
 	if err != nil {
 		application.ERROR.Println(err.Error())
@@ -27,8 +31,19 @@ func init() {
 	if err != nil {
 		application.ERROR.Println(err.Error())
 	}
-	models.Model = models.Init(conn.DB)
-	//defer conn.Close()
+	models.Init(conn.DB)
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		application.ERROR.Println(err)
+	}
+	defer tx.Rollback()
+	migration.Init(tx)
+	err, tx = models.Model.CreateTx()
+	if err != nil {
+		application.ERROR.Println(err)
+	}
+	defer tx.Rollback()
+	migration.LoadMigrations(tx)
 
 	cache.AppCache = cache.CreateCache(time.Minute, time.Minute)
 }
@@ -41,10 +56,19 @@ func main() {
 	application.CreateRouters(server)
 
 	go func() {
+		application.INFO.Println("Start http server")
 		err := server.Run()
 		if err != nil {
 			application.INFO.Println("Error started server: ", err)
 			fmt.Printf("Error started server: %s \n", err)
+		}
+	}()
+	go func() {
+		application.INFO.Println("Start report runner")
+		err := report.Run()
+		if err != nil {
+			application.INFO.Println("Error started report runner: ", err)
+			fmt.Printf("Error started report runner: %s \n", err)
 		}
 	}()
 	quit := make(chan os.Signal, 1)

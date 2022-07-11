@@ -20,13 +20,14 @@ type HistoryVisit struct {
 	Unit     int    `json:"unit"`
 }
 
-func (m *patientModel) HistoryVisits(id int) (*[]HistoryVisit, error) {
+func (m *patientModel) HistoryVisits(id int, tx *sql.Tx) (*[]HistoryVisit, error) {
 	var data []HistoryVisit
 	sql := fmt.Sprintf(
 		`select first 1000 v_n, dat, dokf, diag, diag_t, prich, sost, m1, m2 from find_disp(%v)
      order by dat DESC`, id)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -65,11 +66,12 @@ type HistoryHospital struct {
 	Where         string         `json:"where"`
 }
 
-func (m *patientModel) HistoryHospital(id int) (*[]HistoryHospital, error) {
+func (m *patientModel) HistoryHospital(id int, tx *sql.Tx) (*[]HistoryHospital, error) {
 	var data []HistoryHospital
 	sql := fmt.Sprintf(`select datp, datv, dp, dv, diagp, diagv, otd, ni, we, nom_z from find_stac_otkaz(%v) order by datp DESC`, id)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +106,7 @@ type HistorySPC struct {
 	Res  string `json:"res"`
 }
 
-func (m *patientModel) HistorySPC(patientId int, podr int) (*[]HistorySPC, error) {
+func (m *patientModel) HistorySPC(patientId int, podr int, tx *sql.Tx) (*[]HistorySPC, error) {
 	var data []HistorySPC
 	sql := fmt.Sprintf(`select cast(ds.date_add as date) as date_, case
                     when ds.zakl = 0 then 'Согласие'
@@ -116,7 +118,8 @@ where ds.patient_id = %v
 and ds.podr = %v
 order by ds.date_add`, patientId, podr)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +146,7 @@ type HistorySindrom struct {
 	DoctName  string `json:"doctName"`
 }
 
-func (m *patientModel) HistorySindrom(patientId int) (*[]HistorySindrom, error) {
+func (m *patientModel) HistorySindrom(patientId int, tx *sql.Tx) (*[]HistorySindrom, error) {
 	var data []HistorySindrom
 	sql := fmt.Sprintf(`select a.nom_z, a.diag, a.ins_date, b.nam, c.fio from sindrom a, diag1m b, spr_doct c
 where a.patient_id = %v and
@@ -151,7 +154,8 @@ b.kod2 = a.diag and
 c.kod_dock_i = a.ins_dock
 order by 1`, patientId)
 	INFO.Println(sql)
-	rows, err := m.DB.Query(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
