@@ -3,10 +3,11 @@ package middleware
 import (
 	"fmt"
 	"net/http"
-	"pmain2/internal/controller"
+	"pmain2/internal/config"
 	"pmain2/pkg/cache"
 	"pmain2/pkg/logger"
-	"pmain2/pkg/utils"
+	"pmain2/pkg/utils/jwt"
+	"strings"
 	"time"
 )
 
@@ -24,31 +25,37 @@ type auth struct {
 func CheckAuth(h http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		payed := true
 
-		username, password, ok := r.BasicAuth()
-		if ok {
-			isAuth, ok := appCache.Get(auth{username: username, password: password})
-			if !ok {
-				c := controller.Init()
-				var err error
-				user, _ := utils.ToWin1251(username)
-				pass, _ := utils.ToWin1251(password) // utils.ToASCII(password)
-				isAuth, err = c.User.IsAuth(user, pass)
-				if err != nil {
-					INFO.Println("BasicAuth, ok=", isAuth, " err=", err)
-					http.Error(w, err.Error(), http.StatusUnauthorized)
-					ERROR.Println(err.Error())
-					return
-				}
-				appCache.Set(auth{username: username, password: password}, isAuth, time.Second*10)
-			}
-			if isAuth != nil && isAuth.(bool) {
-				h.ServeHTTP(w, r)
-				return
-			}
+		//username, password, ok := r.BasicAuth()
+		reqToken := r.Header.Get("Authorization")
+		splitToken := strings.Split(reqToken, "Bearer ")
+		reqToken = splitToken[1]
+		jwtT := jwt.JWT(config.AppConfig.SecretKey)
+
+		if jwtT.IsValid(reqToken) && payed {
+			//isAuth, ok := appCache.Get("token_" + reqToken)
+			//if !ok {
+			//c := controller.Init()
+			//var err error
+			//user, _ := utils.ToWin1251(username)
+			//pass, _ := utils.ToWin1251(password) // utils.ToASCII(password)
+			//isAuth, err = c.User.IsAuth(user, pass)
+			//if err != nil {
+			//	INFO.Println("BasicAuth, ok=", isAuth, " err=", err)
+			//	http.Error(w, err.Error(), http.StatusUnauthorized)
+			//	ERROR.Println(err.Error())
+			//	return
+			//}
+			//appCache.Set("token_"+reqToken, isAuth, time.Second*10)
+			//}
+			//if isAuth != nil && isAuth.(bool) {
+			h.ServeHTTP(w, r)
+			return
+			//}
 		}
 
-		w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
+		w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token, charset="UTF-8"`)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	})
 }

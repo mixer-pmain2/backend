@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"pmain2/internal/config"
 	"pmain2/internal/controller"
-	session2 "pmain2/internal/session"
 	"pmain2/internal/types"
 	"pmain2/pkg/utils"
+	"pmain2/pkg/utils/jwt"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 
@@ -58,10 +60,17 @@ func (u *userApi) GetUser(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (u *userApi) Signin(w http.ResponseWriter, r *http.Request) error {
-	username, _, ok := r.BasicAuth()
-	if !ok {
-		fmt.Fprintf(w, `{"success": false}`)
-	}
+	//username, _, ok := r.BasicAuth()
+	//if !ok {
+	//	fmt.Fprintf(w, `{"success": false}`)
+	//}
+
+	reqToken := r.Header.Get("Authorization")
+	splitToken := strings.Split(reqToken, "Bearer ")
+	reqToken = splitToken[1]
+
+	jwtT := jwt.JWT(config.AppConfig.SecretKey)
+	user := jwtT.GetBody(reqToken)
 
 	err, tx := models.Model.CreateTx()
 	if err != nil {
@@ -69,11 +78,7 @@ func (u *userApi) Signin(w http.ResponseWriter, r *http.Request) error {
 	}
 	defer tx.Rollback()
 	model := models.Model.User
-	id, err := strconv.Atoi(username)
-	if err != nil {
-		return err
-	}
-	data, err := model.Get(id, tx)
+	data, err := model.Get(user.UserId, tx)
 	if err != nil {
 		return err
 	}
@@ -105,15 +110,14 @@ func (u *userApi) Login(w http.ResponseWriter, r *http.Request) error {
 	var err error
 	user, _ := utils.ToWin1251(login.Username)
 	pass, _ := utils.ToWin1251(login.Password) // utils.ToASCII(password)
+
 	isAuth, err := c.User.IsAuth(user, pass)
 	if err != nil {
 		ERROR.Println(err)
 		return err
 	}
-	session, _ := session2.Store.Get(r, "user")
-	if isAuth {
-		session.Values["isAuth"] = true
 
+	if isAuth {
 		err, tx := models.Model.CreateTx()
 		if err != nil {
 			ERROR.Println(err)
@@ -134,25 +138,31 @@ func (u *userApi) Login(w http.ResponseWriter, r *http.Request) error {
 			ERROR.Println(err)
 			return err
 		}
-		session.Values["lname"] = data.Lname
-		session.Values["fname"] = data.Fname
-		session.Values["sname"] = data.Sname
-		session.Values["id"] = data.Id
+		jwtT := jwt.JWT(config.AppConfig.SecretKey)
+		token := jwtT.GetToken(jwt.Body{
+			UserId: id,
+		})
+		userData := struct {
+			Id    int64  `json:"id"`
+			Lname string `json:"lname"`
+			Fname string `json:"fname"`
+			Sname string `json:"sname"`
+			Token string `json:"token"`
+		}{data.Id, data.Lname, data.Fname, data.Sname, token}
 
-		err = session.Save(r, w)
 		if err != nil {
 			return err
 		}
 		res := types.HttpResponse{Success: true, Error: 0}
-		res.Data = data
+		res.Data = userData
 		mRes, err := json.Marshal(res)
 		fmt.Fprintf(w, string(mRes))
 		return nil
 	}
-	session.Values["isAuth"] = false
-	session.Save(r, w)
 
-	fmt.Fprintf(w, string(resSuccess(1)))
+	w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token, charset="UTF-8"`)
+	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	//fmt.Fprintf(w, string(resSuccess(1)))
 	return nil
 }
 

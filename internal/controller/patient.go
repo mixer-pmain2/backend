@@ -391,29 +391,61 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 		}
 	}
 
+	regDate, err := time.Parse("2006-01-02", reg.Date)
+	if err != nil {
+		return -1, err
+	}
+
 	lastReg, err := p.FindLastUchet(reg.PatientId, false)
 	if err != nil {
 		return -1, err
 	}
 
-	isClose, err := sprModel.IsClosedSection(lastReg.Section, tx)
-	if err != nil {
-		return -1, err
-	}
-	if isClose {
-		return 303, nil
-	}
+	if lastReg.Date != "" {
+		lastRegDate, err := time.Parse("2006-01-02", lastReg.Date)
+		if err != nil {
+			return -1, err
+		}
 
-	if reg.Diagnose == "" {
-		reg.Diagnose = lastReg.Diagnose
-	}
+		if lastRegDate.Sub(regDate) > 0 {
+			return 360, nil
+		}
+		isClose, err := sprModel.IsClosedSection(lastReg.Section, tx)
+		if err != nil {
+			return -1, err
+		}
+		if isClose {
+			return 303, nil
+		}
 
-	if reg.Section == 0 {
-		reg.Section = lastReg.Section
+		if reg.Diagnose == "" {
+			reg.Diagnose = lastReg.Diagnose
+		}
+
+		if reg.Section == 0 {
+			reg.Section = lastReg.Section
+		}
+
+		if reg.Category == 0 {
+			reg.Category = lastReg.Category
+		}
+
+		if lastReg.Reason == consts.EXIT_REAS_DEAD {
+			return 305, nil
+		}
+
+		if reg.Reason == consts.REAS_SWITCH_CATEG_GROUP && (reg.Category == 10 || reg.Category == lastReg.Category) {
+			return 310, nil
+		}
+
+		if (reg.Reason == consts.REAS_SWITCH_CATEG_TO_AMBULANC && lastReg.Category > 0 && lastReg.Category < 9) ||
+			(reg.Reason == consts.REAS_SWITCH_CATEG_TO_CONSULTANT && lastReg.Category == 10) {
+			return 311, nil
+		}
 	}
 
 	if reg.Category == 0 {
-		reg.Category = lastReg.Category
+		return 317, err
 	}
 
 	countJudgment, err := patientModel.GetCountJudgment(reg.PatientId, tx)
@@ -422,10 +454,6 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 	}
 	if reg.Category == 7 && countJudgment == 0 {
 		return 304, nil
-	}
-
-	if lastReg.Reason == consts.EXIT_REAS_DEAD {
-		return 305, nil
 	}
 
 	if reg.Section < 10 && reg.Reason == consts.REAS_NEW {
@@ -444,15 +472,6 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 		return 309, nil
 	}
 
-	if reg.Reason == consts.REAS_SWITCH_CATEG_GROUP && (reg.Category == 10 || reg.Category == lastReg.Category) {
-		return 310, nil
-	}
-
-	if (reg.Reason == consts.REAS_SWITCH_CATEG_TO_AMBULANC && lastReg.Category > 0 && lastReg.Category < 9) ||
-		(reg.Reason == consts.REAS_SWITCH_CATEG_TO_CONSULTANT && lastReg.Category == 10) {
-		return 311, nil
-	}
-
 	if reg.Reason == consts.REAS_EXIT {
 		if reg.ExitReason == "" {
 			return 316, nil
@@ -465,7 +484,7 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 		return 312, nil
 	}
 
-	isClose, err = sprModel.IsClosedSection(reg.Section, tx)
+	isClose, err := sprModel.IsClosedSection(reg.Section, tx)
 	if err != nil {
 		return -1, err
 	}
@@ -483,25 +502,12 @@ func (p *patient) NewReg(reg *types.NewRegister) (int, error) {
 		}
 	}
 
-	regDate, err := time.Parse("2006-01-02", reg.Date)
-	if err != nil {
-		return -1, err
-	}
 	countReg, err := patientModel.GetCountRegDataInDate(reg.PatientId, reg.Section, regDate, tx)
 	if err != nil {
 		return -1, err
 	}
 	if countReg > 0 {
 		return 315, nil
-	}
-
-	lastRegDate, err := time.Parse("2006-01-02", lastReg.Date)
-	if err != nil {
-		return -1, err
-	}
-
-	if lastRegDate.Sub(regDate) > 0 {
-		return 360, nil
 	}
 
 	_, err = patientModel.InsertReg(*reg, tx)

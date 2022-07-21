@@ -18,6 +18,7 @@ type Config struct {
 	DbUser     string
 	DbPassword string
 	DbName     string
+	SecretKey  string
 }
 
 func Create() (*Config, error) {
@@ -39,6 +40,7 @@ func Create() (*Config, error) {
 		DbUser:     os.Getenv("DB_USER"),
 		DbPassword: os.Getenv("DB_PASSWORD"),
 		DbName:     os.Getenv("DB_NAME"),
+		SecretKey:  os.Getenv("SECRET_KEY"),
 	}, nil
 }
 

@@ -140,7 +140,7 @@ func process() error {
 		if err != nil {
 			continue
 		}
-
+		//visitLastDate("01.01.2022", "16.07.2022")
 		<-time.Tick(time.Second * 10)
 	}
 	INFO.Println("Stopped report runner")
