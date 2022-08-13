@@ -109,6 +109,32 @@ func (p *patient) FindByFio(lname, fname, sname string) (*[]types.Patient, error
 	return data, nil
 }
 
+func (p *patient) FindByAddress(address types.Patient) (*[]types.Patient, error) {
+	cacheName := address
+
+	item, ok := cachePat.Get(cacheName)
+	if ok {
+		res := item.(*[]types.Patient)
+		return res, nil
+	}
+
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	data, err := model.FindByAddress(address, tx)
+	if err != nil {
+		return nil, err
+	}
+	tx.Commit()
+
+	cachePat.Set(cacheName, data, 0)
+	return data, nil
+}
+
 func (p *patient) FindById(id int64, isCache bool) (*types.Patient, error) {
 	cacheName := fmt.Sprintf("patient_id_%v", id)
 
@@ -267,7 +293,6 @@ func (p *patient) HistoryHospital(id int) (*[]models.HistoryHospital, error) {
 }
 
 func (p *patient) NewVisit(visit *types.NewVisit) (int, error) {
-	fmt.Println(*visit)
 	visit.Normalize()
 	model := models.Model.Patient
 	err, tx := models.Model.CreateTx()
@@ -336,7 +361,6 @@ func (p *patient) NewVisit(visit *types.NewVisit) (int, error) {
 }
 
 func (p *patient) NewProf(visit *types.NewProf) (int, error) {
-	fmt.Println(*visit)
 	visit.Normalize()
 
 	model := models.Model.Patient
@@ -1054,6 +1078,11 @@ func (p *patient) UpdAddress(address *types.Patient) (int, error) {
 	if address.Domicile == 0 {
 		address.Domicile = patient.Domicile
 	}
+
+	address.Build, _ = utils.ToWin1251(address.Build)
+	address.Flat, _ = utils.ToWin1251(address.Flat)
+	address.House, _ = utils.ToWin1251(address.House)
+
 	err, tx = models.Model.CreateTx()
 	if err != nil {
 		return 20, err
@@ -1062,12 +1091,12 @@ func (p *patient) UpdAddress(address *types.Patient) (int, error) {
 	_, err = model.UpdAddress(address, tx)
 	if err != nil {
 		ERROR.Println(err.Error())
-		return -1, err
+		return 9, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return -1, err
+		return 21, err
 	}
 	return 0, nil
 }
@@ -1254,4 +1283,360 @@ func (p *patient) NewSOD(sod *types.SOD) (int, error) {
 		return 22, err
 	}
 	return 0, nil
+}
+
+func (p *patient) GetDoctorsVisitByPatient(id int, date time.Time, isCache bool) (*[]types.Doctor, error) {
+	cacheName := fmt.Sprintf("GetDoctorsVisitByPatient%v%s", id, date)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]types.Doctor), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	date = date.AddDate(0, 0, -365)
+	data, err := model.GetDoctorsVisitByPatient(id, date, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) GetLastUKLByVisitPatient(id int, isCache bool) (*types.UKLData, error) {
+	cacheName := fmt.Sprintf("GetLastVisitByPatient%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*types.UKLData), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetLastUKLByVisitPatient(id, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) NewUKLByVisitPatient(data *types.NewUKL) (int, error) {
+
+	if data.DoctorId == 0 {
+		return 800, nil
+	}
+
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 21, err
+	}
+	defer tx.Rollback()
+	lastUkl, err := model.GetLastUKLByVisitPatient(data.PatientId, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return 21, err
+	}
+	if data.Level == 1 {
+		dateLastUkl, _ := time.Parse(consts.TIME_FORMAT_DB, lastUkl.Date1)
+		duration := time.Now().Sub(dateLastUkl)
+		if data.Unit == consts.UNIT_APL {
+			if duration < time.Hour*24*90 {
+				return 801, nil
+			}
+		}
+		if data.Unit == consts.UNIT_CHILD {
+			if duration < time.Hour*24*30 {
+				return 801, nil
+			}
+		}
+		lastUchet, err := model.FindLastUchet(int64(data.PatientId), tx)
+		if err != nil {
+			return -1, err
+		}
+		if lastUchet.Id == 0 {
+			return 805, nil
+		}
+		if data.Unit != consts.UNIT_APL && data.Unit != consts.UNIT_CHILD {
+			if lastUchet.Id > 0 && lastUchet.Id == lastUkl.RegistratId {
+				return 801, nil
+			}
+		}
+		allowEditDate := false
+		if service, err := models.Model.Spr.GetParams(tx); err != nil {
+			for _, s := range *service {
+				if s.Param == "UKL_EDIT_DATE" && s.ParamI == data.UserId {
+					allowEditDate = true
+					break
+				}
+			}
+		}
+		if !allowEditDate {
+			data.Date = time.Now().Format(consts.TIME_FORMAT_DB)
+		}
+		_, err = model.NewUKLByVisitPatientLvl1(data, lastUchet.Id, tx)
+		if err != nil {
+			return -1, err
+		}
+	}
+	data.Id = lastUkl.Id
+	if data.Level == 2 {
+		if lastUkl.Id == 0 {
+			return 802, nil
+		}
+		_, err = model.NewUKLByVisitPatientLvl2(data, tx)
+		if err != nil {
+			return -1, err
+		}
+	}
+	if data.Level == 3 {
+		if lastUkl.Id == 0 {
+			return 802, nil
+		}
+		if lastUkl.User2 == 0 {
+			return 803, nil
+		}
+		_, err = model.NewUKLByVisitPatientLvl3(data, tx)
+		if err != nil {
+			return -1, err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
+	}
+
+	return 0, nil
+}
+
+func (p *patient) GetLastUKLBySuicide(id int, isCache bool) (*types.UKLData, error) {
+	cacheName := fmt.Sprintf("GetLastUKLBySuicide%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*types.UKLData), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetLastUKLBySuicide(id, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) NewUKLBySuicide(data *types.NewUKL) (int, error) {
+
+	if data.DoctorId == 0 {
+		return 800, nil
+	}
+
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 21, err
+	}
+	defer tx.Rollback()
+	lastUkl, err := model.GetLastUKLBySuicide(data.PatientId, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return 21, err
+	}
+	lastVisit, err := model.CheckUKLLastVisit(data.PatientId, data.Unit, tx)
+	if lastVisit.Id == 0 {
+		return 804, nil
+	}
+	if data.Level == 1 {
+		if err != nil {
+			return -1, err
+		}
+		if lastVisit.Id == lastUkl.VisitId {
+			return 801, nil
+		}
+		data.Date = time.Now().Format(consts.TIME_FORMAT_DB)
+		_, err = model.NewUKLBySuicide1(data, lastVisit.Id, tx)
+		if err != nil {
+			return -1, err
+		}
+	}
+	data.Id = lastUkl.Id
+	if data.Level == 2 {
+		if lastUkl.Id == 0 {
+			return 802, nil
+		}
+		_, err = model.NewUKLBySuicide2(data, tx)
+		if err != nil {
+			return -1, err
+		}
+	}
+	if data.Level == 3 {
+		if lastUkl.Id == 0 {
+			return 802, nil
+		}
+		if lastUkl.User2 == 0 {
+			return 803, nil
+		}
+		_, err = model.NewUKLBySuicide3(data, tx)
+		if err != nil {
+			return -1, err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
+	}
+
+	return 0, nil
+}
+
+func (p *patient) GetLastUKLByPsychotherapy(id int, isCache bool) (*types.UKLData, error) {
+	cacheName := fmt.Sprintf("GetLastUKLByPsychotherapy%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*types.UKLData), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetLastUKLByPsychotherapy(id, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) NewUKLByPsychotherapy(data *types.NewUKL) (int, error) {
+
+	if data.DoctorId == 0 {
+		return 800, nil
+	}
+
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 21, err
+	}
+	defer tx.Rollback()
+	lastUkl, err := model.GetLastUKLByPsychotherapy(data.PatientId, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return 21, err
+	}
+	lastVisit, err := model.CheckUKLLastVisit(data.PatientId, data.Unit, tx)
+	if lastVisit.Id == 0 {
+		return 804, nil
+	}
+	if data.Level == 1 {
+		if err != nil {
+			return -1, err
+		}
+		if lastVisit.Id == lastUkl.VisitId {
+			return 801, nil
+		}
+		data.Date = time.Now().Format(consts.TIME_FORMAT_DB)
+		_, err = model.NewUKLByPsychotherapy1(data, lastVisit.Id, tx)
+		if err != nil {
+			return -1, err
+		}
+	}
+	data.Id = lastUkl.Id
+	if data.Level == 2 {
+		if lastUkl.Id == 0 {
+			return 802, nil
+		}
+		_, err = model.NewUKLByPsychotherapy2(data, tx)
+		if err != nil {
+			return -1, err
+		}
+	}
+	if data.Level == 3 {
+		if lastUkl.Id == 0 {
+			return 802, nil
+		}
+		if lastUkl.User2 == 0 {
+			return 803, nil
+		}
+		_, err = model.NewUKLByPsychotherapy3(data, tx)
+		if err != nil {
+			return -1, err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
+	}
+
+	return 0, nil
+}
+
+func (p *patient) GetListUKLByPatient(id int, isType int, isCache bool) (*[]types.UKLData, error) {
+	cacheName := fmt.Sprintf("GetListUKLByPatient%v_%v", id, isType)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]types.UKLData), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetListUKLByPatient(id, isType, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
 }

@@ -612,6 +612,40 @@ ORDER BY uch`)
 	return &data, nil
 }
 
+func (m *SprModel) FindSectionLead(find *types.FindDoctorLead, tx *sql.Tx) (*[]types.LocationDoctor, error) {
+	sql := fmt.Sprintf(`SELECT du.uch, du.DOCK, sd.FIO, sd.IM, sd.OT, du.PODRAZ 
+FROM dock_uch_s du
+LEFT JOIN spr_doct sd ON sd.KOD_DOCK_i = du.DOCK 
+WHERE PODRAZ = ?
+and date_s = ? and date_e = ?
+ORDER BY uch`)
+	d1 := time.Date(find.Year, time.Month(find.Month), 1, 0, 0, 0, 0, time.UTC)
+	d2 := d1.AddDate(0, 1, -1)
+	INFO.Println(sql)
+	stmt, err := tx.Prepare(sql)
+	defer stmt.Close()
+	rows, err := stmt.Query(find.Unit, d1, d2)
+	defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	data := make([]types.LocationDoctor, 0)
+	for rows.Next() {
+		var row types.LocationDoctor
+		id := ""
+		err = rows.Scan(&row.Section, &id, &row.Lname, &row.Fname, &row.Sname, &row.Unit)
+		if err != nil {
+			return nil, err
+		}
+		row.DoctId, _ = strconv.Atoi(strings.Trim(id, " "))
+		row.Lname, _ = utils.ToUTF8(strings.Trim(row.Lname, " "))
+		row.Fname, _ = utils.ToUTF8(strings.Trim(row.Fname, " "))
+		row.Sname, _ = utils.ToUTF8(strings.Trim(row.Sname, " "))
+		data = append(data, row)
+	}
+	return &data, nil
+}
+
 func (m *SprModel) GetDoctors(find *types.FindI, tx *sql.Tx) (*[]types.Doctor, error) {
 	sql := fmt.Sprintf(`SELECT KOD_DOCK_I, FIO, IM, OT, prava, z152
 FROM SPR_DOCT sd 

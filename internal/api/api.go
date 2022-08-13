@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"pmain2/internal/consts"
@@ -73,7 +72,6 @@ func getParams(r *http.Request, t interface{}) *apiParams {
 	}
 
 	if t != nil {
-		fmt.Println(r.Body)
 		json.NewDecoder(r.Body).Decode(&t)
 	}
 

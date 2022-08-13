@@ -212,7 +212,6 @@ func (u *userApi) ChangePassword(w http.ResponseWriter, r *http.Request) error {
 	data.UserId = int64(params.id)
 
 	contr := controller.Init()
-	fmt.Println(data)
 	val, err := contr.User.ChangePassword(data)
 	if err != nil {
 		return err

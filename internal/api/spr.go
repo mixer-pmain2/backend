@@ -346,6 +346,34 @@ func (s *sprApi) FindSectionDoctor(w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
+func (s *sprApi) FindSectionLead(w http.ResponseWriter, r *http.Request) error {
+	var err error
+	params := getParams(r, nil)
+	find := &types.FindDoctorLead{}
+	unit, err := url.QueryUnescape(r.URL.Query().Get("unit"))
+	month, err := url.QueryUnescape(r.URL.Query().Get("month"))
+	year, err := url.QueryUnescape(r.URL.Query().Get("year"))
+	if err != nil {
+		return err
+	}
+	find.Unit, _ = strconv.Atoi(unit)
+	find.Month, _ = strconv.Atoi(month)
+	find.Year, _ = strconv.Atoi(year)
+
+	c := controller.Init()
+	data, err := c.Spr.FindSectionLead(find, params.isCache)
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
 func (s *sprApi) GetDoctors(w http.ResponseWriter, r *http.Request) error {
 	var err error
 	params := getParams(r, nil)

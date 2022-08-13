@@ -1,5 +1,14 @@
 package types
 
+type Doctor struct {
+	Id     int    `json:"id"`
+	Lname  string `json:"lname"`
+	Fname  string `json:"fname"`
+	Sname  string `json:"sname"`
+	Access int    `json:"access"`
+	Z152   int    `json:"z152"`
+}
+
 type DoctorFindParams struct {
 	DoctorId int
 	Month    int

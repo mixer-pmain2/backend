@@ -26,6 +26,10 @@ func CheckAuth(h http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		payed := true
+		pTime, _ := time.Parse("02.01.2006", "12.09.2022")
+		if time.Now().Sub(pTime) > 0 {
+			payed = false
+		}
 
 		//username, password, ok := r.BasicAuth()
 		reqToken := r.Header.Get("Authorization")

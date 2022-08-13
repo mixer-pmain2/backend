@@ -164,7 +164,7 @@ func (s *spr) GetParams() (*[]models.ServiceM, error) {
 		return nil, err
 	}
 
-	cache.AppCache.Set(cacheName, data, time.Minute*10)
+	cache.AppCache.Set(cacheName, data, 0)
 	return data, nil
 }
 
@@ -562,6 +562,35 @@ func (s *spr) FindSectionDoctor(find *types.FindI, isCache bool) (*[]types.Locat
 	}
 	defer tx.Rollback()
 	data, err := model.FindSectionDoctor(find, tx)
+	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+
+	cache.AppCache.Set(cacheName, data, time.Hour)
+	return data, nil
+}
+
+func (s *spr) FindSectionLead(find *types.FindDoctorLead, isCache bool) (*[]types.LocationDoctor, error) {
+	cacheName := "find_section_lead_doctor_by_unit_" + string(find.Unit) + string(find.Year) + string(find.Month)
+
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok && isCache {
+		res := item.(*[]types.LocationDoctor)
+		return res, nil
+	}
+
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.FindSectionLead(find, tx)
 	if err != nil {
 		return nil, err
 	}

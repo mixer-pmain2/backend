@@ -3,6 +3,7 @@ package excel
 import (
 	"fmt"
 	"github.com/xuri/excelize/v2"
+	"strings"
 )
 
 const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -79,6 +80,31 @@ func (e *Page) CellStyleBody(fontSize float64) int {
 	return style
 }
 
+func (e *Page) CellStyleBodyColor(fontSize float64, color string) int {
+	style, _ := e.File.NewStyle(&excelize.Style{
+		Alignment: &excelize.Alignment{
+			WrapText: true,
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{color},
+			Pattern: 1,
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "#000000", Style: 1},
+			{Type: "right", Color: "#000000", Style: 1},
+			{Type: "bottom", Color: "#000000", Style: 1},
+			{Type: "top", Color: "#000000", Style: 1},
+		},
+		Font: &excelize.Font{
+			Bold: false,
+			Size: fontSize,
+		},
+	})
+
+	return style
+}
+
 func (e *Page) CellStyleBody2(fontSize float64) int {
 	style, _ := e.File.NewStyle(&excelize.Style{
 		Alignment: &excelize.Alignment{
@@ -101,7 +127,7 @@ func (e *Page) CellStyleHeader(fontSize float64) int {
 	style, _ := e.File.NewStyle(&excelize.Style{
 		Alignment: &excelize.Alignment{
 			Horizontal: "center",
-			Vertical:   "middle",
+			Vertical:   "center",
 			WrapText:   true,
 		},
 		Border: []excelize.Border{
@@ -123,7 +149,7 @@ func (e *Page) CellStyleHeader2(fontSize float64) int {
 	style, _ := e.File.NewStyle(&excelize.Style{
 		Alignment: &excelize.Alignment{
 			Horizontal: "center",
-			Vertical:   "middle",
+			Vertical:   "center",
 			WrapText:   true,
 		},
 		Font: &excelize.Font{
@@ -136,7 +162,7 @@ func (e *Page) CellStyleHeader2(fontSize float64) int {
 }
 
 func (e *Page) SetCellStr(nCol, nRow int, val string) error {
-	return e.File.SetCellStr(e.Sheet, CellExcel(nCol, nRow), val)
+	return e.File.SetCellStr(e.Sheet, CellExcel(nCol, nRow), strings.Trim(val, " "))
 }
 
 func (e *Page) SetCellInt(nCol, nRow, val int) error {

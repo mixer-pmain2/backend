@@ -11,6 +11,7 @@ import (
 	"pmain2/internal/controller"
 	"pmain2/internal/types"
 	"strconv"
+	"time"
 )
 
 type patientApi struct{}
@@ -68,6 +69,38 @@ func (p *patientApi) Find(w http.ResponseWriter, r *http.Request) error {
 
 	c := controller.Init()
 	data, err := c.Patient.FindByFio(lname, fname, sname)
+
+	if len(*data) == 0 {
+		fmt.Fprintf(w, "[]")
+		return nil
+	}
+
+	marshal, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, string(marshal))
+	return nil
+}
+
+func (p *patientApi) FindByAddress(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodGet {
+		return nil
+	}
+	address := types.Patient{}
+	address.Republic, _ = strconv.Atoi(r.URL.Query().Get("republic"))
+	address.Region, _ = strconv.Atoi(r.URL.Query().Get("region"))
+	address.District, _ = strconv.Atoi(r.URL.Query().Get("district"))
+	address.Area, _ = strconv.Atoi(r.URL.Query().Get("area"))
+	address.Domicile, _ = strconv.Atoi(r.URL.Query().Get("domicile"))
+	address.Street, _ = strconv.Atoi(r.URL.Query().Get("street"))
+	address.House, _ = url.QueryUnescape(r.URL.Query().Get("house"))
+	address.Build, _ = url.QueryUnescape(r.URL.Query().Get("build"))
+	address.Flat, _ = url.QueryUnescape(r.URL.Query().Get("flat"))
+
+	c := controller.Init()
+	data, err := c.Patient.FindByAddress(address)
 
 	if len(*data) == 0 {
 		fmt.Fprintf(w, "[]")
@@ -522,7 +555,6 @@ func (p *patientApi) NewInvalid(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 	var newInvalid types.NewInvalid
-	fmt.Println(r.Body)
 	err := json.NewDecoder(r.Body).Decode(&newInvalid)
 	if err != nil {
 		return err
@@ -552,7 +584,6 @@ func (p *patientApi) UpdInvalid(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 	var newInvalid types.NewInvalid
-	fmt.Println(r.Body)
 	err := json.NewDecoder(r.Body).Decode(&newInvalid)
 	if err != nil {
 		return err
@@ -959,6 +990,204 @@ func (p *patientApi) NewSOD(w http.ResponseWriter, r *http.Request) error {
 		res.Message = consts.ArrErrors[val]
 	}
 	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) GetDoctorsVisitByPatient(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+	patientId, _ := strconv.Atoi(r.URL.Query().Get("patientId"))
+	date, _ := time.Parse("2006-01-02", r.URL.Query().Get("date"))
+
+	c := controller.Init()
+	data, err := c.Patient.GetDoctorsVisitByPatient(patientId, date, isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) GetLastUKLByVisitPatient(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+	patientId, _ := strconv.Atoi(r.URL.Query().Get("patientId"))
+
+	c := controller.Init()
+	data, err := c.Patient.GetLastUKLByVisitPatient(patientId, isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) SetUKLByVisitPatient(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	data := types.NewUKL{}
+	getParams(r, &data)
+
+	c := controller.Init()
+	val, err := c.Patient.NewUKLByVisitPatient(&data)
+	if err != nil {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) GetLastUKLBySuicide(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+	patientId, _ := strconv.Atoi(r.URL.Query().Get("patientId"))
+
+	c := controller.Init()
+	data, err := c.Patient.GetLastUKLBySuicide(patientId, isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) SetUKLBySuicide(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	data := types.NewUKL{}
+	getParams(r, &data)
+
+	c := controller.Init()
+	val, err := c.Patient.NewUKLBySuicide(&data)
+	if err != nil {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) GetLastUKLByPsychotherapy(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+	patientId, _ := strconv.Atoi(r.URL.Query().Get("patientId"))
+
+	c := controller.Init()
+	data, err := c.Patient.GetLastUKLByPsychotherapy(patientId, isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) SetUKLByPsychotherapy(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	data := types.NewUKL{}
+	getParams(r, &data)
+
+	c := controller.Init()
+	val, err := c.Patient.NewUKLByPsychotherapy(&data)
+	if err != nil {
+		return err
+	}
+
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) GetListUKLByPatient(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+	isType, _ := strconv.Atoi(r.URL.Query().Get("isType"))
+	patientId, _ := strconv.Atoi(r.URL.Query().Get("patientId"))
+
+	c := controller.Init()
+	data, err := c.Patient.GetListUKLByPatient(patientId, int(isType), isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
 	w.Write(resMarshal)
 	return nil
 }

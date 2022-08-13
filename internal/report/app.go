@@ -81,6 +81,22 @@ func createReport() error {
 			buf, err = job.Deregistered(row, tx)
 		case reportType.ConsistingOnTheSite:
 			buf, err = job.ConsistingOnTheSite(row, tx)
+		case reportType.ThoseInTheHospital:
+			buf, err = job.ThoseInTheHospital(row, tx)
+		case reportType.HospitalTreatment:
+			buf, err = job.HospitalTreatment(row, tx)
+		case reportType.AmbulatoryTreatment:
+			buf, err = job.AmbulatoryTreatment(row, tx)
+		case reportType.PBSTIN:
+			buf, err = job.PBSTIN(row, tx)
+		case reportType.TakenOnADN:
+			buf, err = job.Registered(row, tx)
+		case reportType.TakenFromADN:
+			buf, err = job.Deregistered(row, tx)
+		case reportType.TakenForADNAccordingToClinical:
+			buf, err = job.TakenForADNAccordingToClinical(row, tx)
+		case reportType.ProtocolUKL:
+			buf, err = job.ProtocolUKL(row, tx)
 
 		default:
 			err, tx = CreateTx()
@@ -135,14 +151,32 @@ func createReport() error {
 
 func process() error {
 	var err error
-	for true {
-		err = createReport()
-		if err != nil {
-			continue
+
+	go func() {
+		for true {
+			err = createReport()
+			if err != nil {
+				continue
+			}
+			//visitLastDate("01.01.2022", "16.07.2022")
+			<-time.Tick(time.Second * 10)
 		}
-		//visitLastDate("01.01.2022", "16.07.2022")
-		<-time.Tick(time.Second * 10)
-	}
-	INFO.Println("Stopped report runner")
+	}()
+	go func() {
+		for true {
+			err, tx := CreateTx()
+			if err != nil {
+				ERROR.Println(err)
+			}
+
+			_, err = deleteOlderReport(7, tx)
+			if err != nil {
+				ERROR.Println(err)
+			}
+			tx.Commit()
+
+			<-time.Tick(time.Hour * 24)
+		}
+	}()
 	return err
 }

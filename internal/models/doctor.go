@@ -48,10 +48,10 @@ func (m *doctorModel) VisitCountPlan(data types.DoctorFindParams, tx *sql.Tx) (*
 	date := time.Date(data.Year, time.Month(data.Month+1), 0, 0, 0, 0, 0, time.UTC)
 	endDate := time.Date(data.Year, time.Month(data.Month), date.Day(), 0, 0, 0, 0, time.UTC)
 	sqlQuery := fmt.Sprintf(`SELECT maska2-bin_and(maska2, 1), count(*), 
-   (select count_plan from doct_plan(2018, 1, maska2-bin_and(maska2,1),15))
+   (select count_plan from doct_plan(%v, %v, maska2-bin_and(maska2,1), %v))
 from visit 
 where name_doct = %v and v_date between '%s' and '%s'
-group by 1`, data.DoctorId, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
+group by 1`, data.Year, data.Month, data.DoctorId, data.DoctorId, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
 	INFO.Println(sqlQuery)
 	rows, err := tx.Query(sqlQuery)
 	defer rows.Close()

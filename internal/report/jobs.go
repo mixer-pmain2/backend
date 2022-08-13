@@ -8,9 +8,11 @@ import (
 	"github.com/xuri/excelize/v2"
 	"pmain2/internal/consts"
 	"pmain2/internal/models"
+	"pmain2/internal/types"
 	"pmain2/pkg/cache"
 	"pmain2/pkg/excel"
 	"pmain2/pkg/utils"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -51,10 +53,10 @@ from f39_day('%s', %v) where (mask2 = %v) or (mask2 = %v)`, p.Filters.DateStart,
 	doct, _ := m.Get(p.UserId, tx)
 	dateStart, _ := time.Parse("2006-01-02", p.Filters.DateStart)
 
-	sty := excelPage.CellStyleTitle("center", "middle", false, 9)
+	sty := excelPage.CellStyleTitle("center", "center", false, 9)
 	excelPage.Title("Журнал посещения пациентов", cellExcel(1, 1), cellExcel(10, 1), sty)
 	excelPage.Title(fmt.Sprintf("за %s   Врач - %s %s %s", dateStart.Format("02.01.2006"), doct.Lname, doct.Fname, doct.Sname), cellExcel(1, 2), cellExcel(10, 2), sty)
-
+	f.SetRowHeight(sheet, 3, 27)
 	f.SetCellStyle(sheet, cellExcel(1, 3), cellExcel(10, 3), excelPage.CellStyleHeader(9))
 	f.SetCellStr(sheet, cellExcel(1, 3), "#")
 	f.SetCellStr(sheet, cellExcel(2, 3), "Шифр")
@@ -107,15 +109,15 @@ from f39_day('%s', %v) where (mask2 = %v) or (mask2 = %v)`, p.Filters.DateStart,
 		f.SetCellStyle(sheet, cellExcel(1, nRow), cellExcel(10, nRow), excelPage.CellStyleBody(9))
 
 		f.SetCellInt(sheet, cellExcel(1, nRow), nz)
-		f.SetCellInt(sheet, cellExcel(2, nRow), row.PatientId)
-		f.SetCellStr(sheet, cellExcel(3, nRow), patientName)
-		f.SetCellStr(sheet, cellExcel(4, nRow), bday.Format("02.01.2006"))
-		f.SetCellStr(sheet, cellExcel(5, nRow), strings.Trim(row.Section, " "))
-		f.SetCellStr(sheet, cellExcel(6, nRow), diagnose)
-		f.SetCellStr(sheet, cellExcel(7, nRow), category)
-		f.SetCellStr(sheet, cellExcel(8, nRow), unitName)
-		f.SetCellStr(sheet, cellExcel(9, nRow), strings.Trim(row.SectionFrom, " "))
-		f.SetCellStr(sheet, cellExcel(10, nRow), reason)
+		excelPage.SetCellInt(2, nRow, row.PatientId)
+		excelPage.SetCellStr(3, nRow, patientName)
+		excelPage.SetCellStr(4, nRow, bday.Format("02.01.2006"))
+		excelPage.SetCellStr(5, nRow, strings.Trim(row.Section, " "))
+		excelPage.SetCellStr(6, nRow, diagnose)
+		excelPage.SetCellStr(7, nRow, category)
+		excelPage.SetCellStr(8, nRow, unitName)
+		excelPage.SetCellStr(9, nRow, strings.Trim(row.SectionFrom, " "))
+		excelPage.SetCellStr(10, nRow, reason)
 
 		nz += 1
 		nRow += 1
@@ -148,7 +150,7 @@ func (r *ReportsJob) VisitsPerPeriod(p reportParams, tx *sql.Tx) (*bytes.Buffer,
 	sheet := f.GetSheetName(0)
 	page := excel.Page{f, sheet}
 
-	sty := page.CellStyleTitle("center", "middle", false, 9)
+	sty := page.CellStyleTitle("center", "center", false, 9)
 	// row 1
 	page.Title("Посещения врача", cellExcel(1, 1), cellExcel(8, 1), sty)
 	// row 2
@@ -156,6 +158,7 @@ func (r *ReportsJob) VisitsPerPeriod(p reportParams, tx *sql.Tx) (*bytes.Buffer,
 		dateStart.Format("02.01.2006"), dateEnd.Format("02.01.2006"), doct.Lname, doct.Fname, doct.Sname),
 		cellExcel(1, 2), cellExcel(8, 2), sty)
 	// row 3
+	f.SetRowHeight(sheet, 3, 27)
 	f.SetCellStyle(sheet, cellExcel(1, 3), cellExcel(3, 3), page.CellStyleHeader(9))
 	f.SetCellStr(sheet, cellExcel(1, 3), "Дата")
 	f.SetCellStr(sheet, cellExcel(2, 3), "Количество")
@@ -228,7 +231,7 @@ func (r *ReportsJob) AdmittedToTheHospital(p reportParams, tx *sql.Tx) (*bytes.B
 	dateStart, _ := time.Parse("2006-01-02", p.Filters.RangeDate[0])
 	dateEnd, _ := time.Parse("2006-01-02", p.Filters.RangeDate[1])
 
-	sty := page.CellStyleTitle("center", "middle", false, 9)
+	sty := page.CellStyleTitle("center", "center", false, 9)
 	// row 1
 	page.Title("Список пациентов поступивших в стационар", cellExcel(1, 1), cellExcel(10, 1), sty)
 	// row 2
@@ -242,6 +245,7 @@ func (r *ReportsJob) AdmittedToTheHospital(p reportParams, tx *sql.Tx) (*bytes.B
 		dateStart.Format("02.01.2006"), dateEnd.Format("02.01.2006"), title2),
 		cellExcel(1, 2), cellExcel(10, 2), sty)
 	// row 3
+	f.SetRowHeight(sheet, 3, 27)
 	f.SetCellStyle(sheet, cellExcel(1, 3), cellExcel(10, 3), page.CellStyleHeader(9))
 	f.SetCellStr(sheet, cellExcel(1, 3), "#")
 	f.SetCellStr(sheet, cellExcel(2, 3), "Шифр")
@@ -301,7 +305,7 @@ func (r *ReportsJob) AdmittedToTheHospital(p reportParams, tx *sql.Tx) (*bytes.B
 		nRow += 1
 		nz += 1
 	}
-	sty = page.CellStyleTitle("left", "middle", false, 9)
+	sty = page.CellStyleTitle("left", "center", false, 9)
 	page.Title("По данным отдела АСУ", cellExcel(1, nRow+1), cellExcel(5, nRow+1), sty)
 	page.Title(fmt.Sprintf("Получено %s ", time.Now().Format("02.01.2006 15:04:05")), cellExcel(1, nRow+2), cellExcel(5, nRow+2), sty)
 
@@ -353,7 +357,7 @@ func (r *ReportsJob) DischargedFromHospital(p reportParams, tx *sql.Tx) (*bytes.
 	dateStart, _ := time.Parse("2006-01-02", p.Filters.RangeDate[0])
 	dateEnd, _ := time.Parse("2006-01-02", p.Filters.RangeDate[1])
 
-	sty := page.CellStyleTitle("center", "middle", false, 9)
+	sty := page.CellStyleTitle("center", "center", false, 9)
 	// row 1
 	page.Title("Список выписанных из стационара", cellExcel(1, 1), cellExcel(10, 1), sty)
 	// row 2
@@ -367,6 +371,7 @@ func (r *ReportsJob) DischargedFromHospital(p reportParams, tx *sql.Tx) (*bytes.
 		dateStart.Format("02.01.2006"), dateEnd.Format("02.01.2006"), title2),
 		cellExcel(1, 2), cellExcel(10, 2), sty)
 	// row 3
+	f.SetRowHeight(sheet, 3, 27)
 	f.SetCellStyle(sheet, cellExcel(1, 3), cellExcel(10, 3), page.CellStyleHeader(9))
 	f.SetCellStr(sheet, cellExcel(1, 3), "Шифр")
 	f.SetCellStr(sheet, cellExcel(2, 3), "№ Отд.")
@@ -417,7 +422,7 @@ func (r *ReportsJob) DischargedFromHospital(p reportParams, tx *sql.Tx) (*bytes.
 		nRow += 1
 		nz += 1
 	}
-	sty = page.CellStyleTitle("left", "middle", false, 9)
+	sty = page.CellStyleTitle("left", "center", false, 9)
 	page.Title("По данным отдела АСУ", cellExcel(1, nRow), cellExcel(5, nRow), sty)
 	page.Title(fmt.Sprintf("Получено %s ", time.Now().Format("02.01.2006 15:04:05")), cellExcel(1, nRow+1), cellExcel(5, nRow+1), sty)
 
@@ -486,7 +491,7 @@ func (r *ReportsJob) Unvisited(p reportParams, tx *sql.Tx) (*bytes.Buffer, error
 
 	dateStart, _ := time.Parse("2006-01-02", p.Filters.DateStart)
 
-	sty := page.CellStyleTitle("center", "middle", false, 9)
+	sty := page.CellStyleTitle("center", "center", false, 9)
 	// row 1
 	categoryType := ""
 	if p.Filters.TypeCategory == "k" {
@@ -497,6 +502,7 @@ func (r *ReportsJob) Unvisited(p reportParams, tx *sql.Tx) (*bytes.Buffer, error
 	}
 	page.Title(fmt.Sprintf("Список непосещенных по уч. %v на %s %s", u1, dateStart.Format("02.01.2006"), categoryType), cellExcel(1, 1), cellExcel(11, 1), sty)
 	// row 2
+	f.SetRowHeight(sheet, 2, 27)
 	f.SetCellStyle(sheet, cellExcel(1, 2), cellExcel(11, 2), page.CellStyleHeader(9))
 	f.SetCellStr(sheet, cellExcel(1, 2), "Шифр")
 	f.SetCellStr(sheet, cellExcel(2, 2), "Ф.И.О.")
@@ -563,7 +569,7 @@ func (r *ReportsJob) Unvisited(p reportParams, tx *sql.Tx) (*bytes.Buffer, error
 
 		nRow += 1
 	}
-	sty = page.CellStyleTitle("left", "middle", false, 9)
+	sty = page.CellStyleTitle("left", "center", false, 9)
 	page.Title("По данным отдела АСУ", cellExcel(1, nRow), cellExcel(5, nRow), sty)
 	page.Title(fmt.Sprintf("Получено %s ", time.Now().Format("02.01.2006 15:04:05")), cellExcel(1, nRow+1), cellExcel(5, nRow+1), sty)
 
@@ -587,6 +593,10 @@ func (r *ReportsJob) Registered(p reportParams, tx *sql.Tx) (*bytes.Buffer, erro
 	}
 	if u1 == 0 {
 		return nil, errors.New(consts.ArrErrors[752])
+	}
+
+	if p.Filters.TypeCategory == "" {
+		p.Filters.TypeCategory = "d"
 	}
 	typeCategory := 0
 	if p.Filters.TypeCategory == "k" {
@@ -633,7 +643,7 @@ func (r *ReportsJob) Registered(p reportParams, tx *sql.Tx) (*bytes.Buffer, erro
 	dateStart, _ := time.Parse("2006-01-02", p.Filters.RangeDate[0])
 	dateEnd, _ := time.Parse("2006-01-02", p.Filters.RangeDate[1])
 
-	sty := page.CellStyleTitle("center", "middle", false, 9)
+	sty := page.CellStyleTitle("center", "center", false, 9)
 	// row 1
 	categoryType := ""
 	if typeCategory == 1 {
@@ -653,6 +663,7 @@ func (r *ReportsJob) Registered(p reportParams, tx *sql.Tx) (*bytes.Buffer, erro
 			categoryType, dateStart.Format("02.01.2006"), dateEnd.Format("02.01.2006"), sectionString),
 		cellExcel(1, 1), cellExcel(8, 1), sty)
 	// row 2
+	f.SetRowHeight(sheet, 2, 27)
 	f.SetCellStyle(sheet, cellExcel(1, 2), cellExcel(8, 2), page.CellStyleHeader2(9))
 	f.SetCellStr(sheet, cellExcel(1, 2), "")
 	f.SetCellStr(sheet, cellExcel(2, 2), "Ф.И.О.")
@@ -710,7 +721,7 @@ func (r *ReportsJob) Registered(p reportParams, tx *sql.Tx) (*bytes.Buffer, erro
 
 		nRow += 1
 	}
-	sty = page.CellStyleTitle("left", "middle", false, 9)
+	sty = page.CellStyleTitle("left", "center", false, 9)
 	page.Title("По данным отдела АСУ", cellExcel(1, nRow), cellExcel(8, nRow), sty)
 	page.Title(fmt.Sprintf("Получено %s ", time.Now().Format("02.01.2006 15:04:05")), cellExcel(1, nRow+1), cellExcel(8, nRow+1), sty)
 
@@ -734,6 +745,10 @@ func (r *ReportsJob) Deregistered(p reportParams, tx *sql.Tx) (*bytes.Buffer, er
 	}
 	if u1 == 0 {
 		return nil, errors.New(consts.ArrErrors[752])
+	}
+
+	if p.Filters.TypeCategory == "" {
+		p.Filters.TypeCategory = "d"
 	}
 	typeCategory := 0
 	if p.Filters.TypeCategory == "k" {
@@ -780,7 +795,7 @@ func (r *ReportsJob) Deregistered(p reportParams, tx *sql.Tx) (*bytes.Buffer, er
 	dateStart, _ := time.Parse("2006-01-02", p.Filters.RangeDate[0])
 	dateEnd, _ := time.Parse("2006-01-02", p.Filters.RangeDate[1])
 
-	sty := page.CellStyleTitle("center", "middle", false, 9)
+	sty := page.CellStyleTitle("center", "center", false, 9)
 	// row 1
 	categoryType := ""
 	if typeCategory == 1 {
@@ -800,6 +815,7 @@ func (r *ReportsJob) Deregistered(p reportParams, tx *sql.Tx) (*bytes.Buffer, er
 			categoryType, dateStart.Format("02.01.2006"), dateEnd.Format("02.01.2006"), sectionString),
 		cellExcel(1, 1), cellExcel(8, 1), sty)
 	// row 2
+	f.SetRowHeight(sheet, 2, 27)
 	f.SetCellStyle(sheet, cellExcel(1, 2), cellExcel(8, 2), page.CellStyleHeader2(9))
 	f.SetCellStr(sheet, cellExcel(1, 2), "")
 	f.SetCellStr(sheet, cellExcel(2, 2), "Ф.И.О.")
@@ -857,7 +873,7 @@ func (r *ReportsJob) Deregistered(p reportParams, tx *sql.Tx) (*bytes.Buffer, er
 
 		nRow += 1
 	}
-	sty = page.CellStyleTitle("left", "middle", false, 9)
+	sty = page.CellStyleTitle("left", "center", false, 9)
 	page.Title("По данным отдела АСУ", cellExcel(1, nRow), cellExcel(8, nRow), sty)
 	page.Title(fmt.Sprintf("Получено %s ", time.Now().Format("02.01.2006 15:04:05")), cellExcel(1, nRow+1), cellExcel(8, nRow+1), sty)
 
@@ -932,7 +948,7 @@ func (r *ReportsJob) ConsistingOnTheSite(p reportParams, tx *sql.Tx) (*bytes.Buf
 
 	dateStart, _ := time.Parse("2006-01-02", p.Filters.RangeDate[0])
 
-	sty := page.CellStyleTitle("center", "middle", false, 9)
+	sty := page.CellStyleTitle("center", "center", false, 9)
 	// row 1
 	categoryType := ""
 	if typeCategory == 1 {
@@ -946,6 +962,7 @@ func (r *ReportsJob) ConsistingOnTheSite(p reportParams, tx *sql.Tx) (*bytes.Buf
 			u1, dateStart.Format("02.01.2006"), categoryType),
 		cellExcel(1, 1), cellExcel(9, 1), sty)
 	// row 2
+	f.SetRowHeight(sheet, 2, 27)
 	f.SetCellStyle(sheet, cellExcel(1, 2), cellExcel(9, 2), page.CellStyleHeader(9))
 	f.SetCellStr(sheet, cellExcel(1, 2), "")
 	f.SetCellStr(sheet, cellExcel(2, 2), "Ф.И.О.")
@@ -1010,7 +1027,7 @@ func (r *ReportsJob) ConsistingOnTheSite(p reportParams, tx *sql.Tx) (*bytes.Buf
 		nRow += 1
 		sum += 1
 	}
-	sty = page.CellStyleTitle("left", "middle", false, 9)
+	sty = page.CellStyleTitle("left", "center", false, 9)
 	page.Title(fmt.Sprintf("Всего: %v", sum), cellExcel(1, nRow), cellExcel(9, nRow), sty)
 	nRow += 1
 	page.Title("По данным отдела АСУ", cellExcel(1, nRow), cellExcel(9, nRow), sty)
@@ -1018,5 +1035,777 @@ func (r *ReportsJob) ConsistingOnTheSite(p reportParams, tx *sql.Tx) (*bytes.Buf
 
 	buf, _ := f.WriteToBuffer()
 	cache.AppCache.Set(cacheName, buf, 0)
+	return buf, nil
+}
+
+func (r *ReportsJob) ThoseInTheHospital(p reportParams, tx *sql.Tx) (*bytes.Buffer, error) {
+	if len(p.Filters.RangeSection) < 2 {
+		return nil, errors.New(consts.ArrErrors[751])
+	}
+	//if len(p.Filters.RangeDate) < 2 {
+	//	return nil, errors.New(consts.ArrErrors[750])
+	//}
+	u1 := p.Filters.RangeSection[0]
+	u2 := p.Filters.RangeSection[1]
+	if u2 < u1 {
+		u2 = u1
+	}
+
+	cellExcel := excel.CellExcel
+	toCharStrConst := excel.ToCharStrConst
+
+	f := excel.CreateFile()
+	sheet := f.GetSheetName(0)
+	page := excel.Page{f, sheet}
+
+	sty := page.CellStyleTitle("center", "center", false, 9)
+	// row 1
+	page.Title("Список пациентов находящихся в стационар", cellExcel(1, 1), cellExcel(10, 1), sty)
+	// row 2
+	title2 := ""
+	if u2 > u1 {
+		title2 = fmt.Sprintf("уч. %v - %v", u1, u2)
+	} else {
+		title2 = fmt.Sprintf("уч. %v", u1)
+	}
+	page.Title(fmt.Sprintf("%s", title2),
+		cellExcel(1, 2), cellExcel(10, 2), sty)
+	// row 3
+	f.SetRowHeight(sheet, 3, 27)
+	f.SetCellStyle(sheet, cellExcel(1, 3), cellExcel(10, 3), page.CellStyleHeader(9))
+	f.SetCellStr(sheet, cellExcel(1, 3), "#")
+	f.SetCellStr(sheet, cellExcel(2, 3), "Шифр")
+	f.SetCellStr(sheet, cellExcel(3, 3), "Ф.И.О.")
+	f.SetCellStr(sheet, cellExcel(4, 3), "Д.р.")
+	f.SetCellStr(sheet, cellExcel(5, 3), "Отд.")
+	f.SetCellStr(sheet, cellExcel(6, 3), "Дата пост.")
+	f.SetCellStr(sheet, cellExcel(7, 3), "Стационар")
+	f.SetCellStr(sheet, cellExcel(8, 3), "Учет")
+	f.SetCellStr(sheet, cellExcel(9, 3), "Причина")
+	f.SetCellStr(sheet, cellExcel(10, 3), "Участок")
+
+	f.SetColWidth(sheet, toCharStrConst(1), toCharStrConst(1), 21/7)
+	f.SetColWidth(sheet, toCharStrConst(2), toCharStrConst(2), 53/7)
+	f.SetColWidth(sheet, toCharStrConst(3), toCharStrConst(3), 127/7)
+	f.SetColWidth(sheet, toCharStrConst(4), toCharStrConst(4), 67/7)
+	f.SetColWidth(sheet, toCharStrConst(5), toCharStrConst(5), 42/7)
+	f.SetColWidth(sheet, toCharStrConst(6), toCharStrConst(6), 67/7)
+	f.SetColWidth(sheet, toCharStrConst(7), toCharStrConst(7), 68/7)
+	f.SetColWidth(sheet, toCharStrConst(8), toCharStrConst(8), 68/7)
+	f.SetColWidth(sheet, toCharStrConst(9), toCharStrConst(9), 65/7)
+	f.SetColWidth(sheet, toCharStrConst(10), toCharStrConst(10), 42/7)
+
+	sqlQuery := fmt.Sprintf(`SELECT pi, fam, bd, otd, pdate, diag, diag_u, string, uch  
+from SPS_INSTAC(%v, %v) order by fam`, u1, u2)
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+
+	nRow := 4
+	nz := 1
+	for rows.Next() {
+		row := struct {
+			patientId   int
+			patientName string
+			bday        string
+			sectionStac int
+			datePost    string
+			diagStac    string
+			diagReg     string
+			reason      string
+			sectionReg  int
+		}{}
+		rows.Scan(&row.patientId, &row.patientName, &row.bday, &row.sectionStac, &row.datePost, &row.diagStac, &row.diagReg, &row.reason, &row.sectionReg)
+
+		bday, _ := time.Parse(time.RFC3339, row.bday)
+		datePost, _ := time.Parse(time.RFC3339, row.datePost)
+
+		f.SetCellStyle(sheet, cellExcel(1, nRow), cellExcel(10, nRow), page.CellStyleBody(9))
+		patientName, _ := utils.ToUTF8(row.patientName)
+		reason, _ := utils.ToUTF8(row.reason)
+		page.SetCellInt(1, nRow, nz)
+		page.SetCellInt(2, nRow, row.patientId)
+		page.SetCellStr(3, nRow, patientName)
+		page.SetCellStr(4, nRow, bday.Format("02.01.2006"))
+		page.SetCellInt(5, nRow, row.sectionStac)
+		page.SetCellStr(6, nRow, datePost.Format("02.01.2006"))
+		page.SetCellStr(7, nRow, row.diagStac)
+		page.SetCellStr(8, nRow, row.diagReg)
+		page.SetCellStr(9, nRow, reason)
+		page.SetCellInt(10, nRow, row.sectionReg)
+
+		nRow += 1
+		nz += 1
+	}
+	sty = page.CellStyleTitle("left", "center", false, 9)
+	page.Title("По данным отдела АСУ", cellExcel(1, nRow+1), cellExcel(5, nRow+1), sty)
+	page.Title(fmt.Sprintf("Получено %s ", time.Now().Format("02.01.2006 15:04:05")), cellExcel(1, nRow+2), cellExcel(5, nRow+2), sty)
+
+	buf, _ := f.WriteToBuffer()
+	return buf, nil
+}
+
+func (r *ReportsJob) HospitalTreatment(p reportParams, tx *sql.Tx) (*bytes.Buffer, error) {
+
+	cellExcel := excel.CellExcel
+	toCharStrConst := excel.ToCharStrConst
+
+	f := excel.CreateFile()
+	sheet := f.GetSheetName(0)
+	f.SetPageLayout(sheet,
+		excelize.PageLayoutOrientation(excelize.OrientationLandscape),
+		excelize.PageLayoutPaperSize(9),
+	)
+	page := excel.Page{f, sheet}
+
+	dateStart, _ := time.Parse("2006-01-02", p.Filters.DateStart)
+	cols := 14
+	sty := page.CellStyleTitle("center", "center", false, 9)
+	page.Title(
+		fmt.Sprintf("Список находящихся на ПЛ по состоянию на %s", dateStart.Format("02.01.2006")),
+		cellExcel(1, 1), cellExcel(cols, 1), sty)
+	// row 2
+	f.SetRowHeight(sheet, 2, 27)
+	f.SetCellStyle(sheet, cellExcel(1, 2), cellExcel(cols, 2), page.CellStyleHeader(9))
+	f.SetCellStr(sheet, cellExcel(1, 2), "")
+	f.SetCellStr(sheet, cellExcel(2, 2), "Ф.И.О.")
+	f.SetCellStr(sheet, cellExcel(3, 2), "Д.р.")
+	f.SetCellStr(sheet, cellExcel(4, 2), "Первое определ.")
+	f.SetCellStr(sheet, cellExcel(5, 2), "Последн определ.")
+	f.SetCellStr(sheet, cellExcel(6, 2), "Мех")
+	f.SetCellStr(sheet, cellExcel(7, 2), "Отд.")
+	f.SetCellStr(sheet, cellExcel(8, 2), "Кат. учета")
+	f.SetCellStr(sheet, cellExcel(9, 2), "Участок учета")
+	f.SetCellStr(sheet, cellExcel(10, 2), "Группа учета")
+	f.SetCellStr(sheet, cellExcel(11, 2), "Последний осмотр")
+	f.SetCellStr(sheet, cellExcel(12, 2), "Адрес")
+	f.SetCellStr(sheet, cellExcel(13, 2), "Инв.")
+	f.SetCellStr(sheet, cellExcel(14, 2), "Заболел")
+
+	f.SetColWidth(sheet, toCharStrConst(1), toCharStrConst(1), 7.29)
+	f.SetColWidth(sheet, toCharStrConst(2), toCharStrConst(2), 18.57)
+	f.SetColWidth(sheet, toCharStrConst(3), toCharStrConst(3), 9.43)
+	f.SetColWidth(sheet, toCharStrConst(4), toCharStrConst(4), 9.43)
+	f.SetColWidth(sheet, toCharStrConst(5), toCharStrConst(5), 9.43)
+	f.SetColWidth(sheet, toCharStrConst(6), toCharStrConst(6), 7.43)
+	f.SetColWidth(sheet, toCharStrConst(7), toCharStrConst(7), 6)
+	f.SetColWidth(sheet, toCharStrConst(8), toCharStrConst(8), 6)
+	f.SetColWidth(sheet, toCharStrConst(9), toCharStrConst(9), 6)
+	f.SetColWidth(sheet, toCharStrConst(10), toCharStrConst(10), 6)
+	f.SetColWidth(sheet, toCharStrConst(11), toCharStrConst(11), 9.43)
+	f.SetColWidth(sheet, toCharStrConst(12), toCharStrConst(12), 13.43)
+	f.SetColWidth(sheet, toCharStrConst(13), toCharStrConst(13), 8.57)
+	f.SetColWidth(sheet, toCharStrConst(14), toCharStrConst(14), 8.57)
+
+	sqlQuery := fmt.Sprintf(`SELECT patient_id, fio, bday, nach, tek_opr, 
+CASE WHEN tr = 1 THEN 'п/п' when tr = 2 THEN 'н/л' ELSE '?' end, 
+otd, kat, uch, gruppa, osmotr, adr, inv, 
+CASE WHEN zabolel = 1 THEN 'до' WHEN zabolel = 2 THEN 'пос' ELSE '?' end 
+from sps_pl_nahod('%s') where (gruppa <> 2 or (gruppa = 2 and otd is not null)) and gruppa <> 4 order by otd, fio`,
+		p.Filters.DateStart)
+
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+	type data struct {
+		patientId   int
+		patientName string
+		bday        string
+		startOp     string
+		endOp       string
+		mech        string
+		sectionStac sql.NullInt64
+		category    sql.NullInt64
+		sectionReg  sql.NullInt64
+		group       sql.NullInt64
+		dateView    string
+		address     string
+		invalid     string
+		sick        string
+	}
+
+	nRow := 3
+	sum := 0
+	for rows.Next() {
+		rereg := false
+		row := data{}
+		rows.Scan(&row.patientId, &row.patientName, &row.bday, &row.startOp, &row.endOp, &row.mech, &row.sectionStac,
+			&row.category, &row.sectionReg, &row.group, &row.dateView, &row.address, &row.invalid, &row.sick)
+		bd, _ := time.Parse(time.RFC3339, row.bday)
+		bday := bd.Format("02.01.2006")
+		startOp := ""
+		if row.startOp != "" {
+			d, _ := time.Parse(time.RFC3339, row.startOp)
+			startOp = d.Format("02.01.2006")
+			if d.Sub(time.Now().AddDate(0, 0, -152)) < 0 {
+				rereg = true
+			}
+		}
+		endOp := ""
+		if row.endOp != "" {
+			d, _ := time.Parse(time.RFC3339, row.endOp)
+			endOp = d.Format("02.01.2006")
+		}
+		sectionStac := ""
+		if row.sectionStac.Int64 > 0 {
+			sectionStac = strconv.FormatInt(row.sectionStac.Int64, 10)
+		}
+		category := ""
+		if row.category.Int64 > 0 {
+			category = strconv.FormatInt(row.category.Int64, 10)
+		}
+		sectionReg := ""
+		if row.sectionReg.Int64 > 0 {
+			sectionReg = strconv.FormatInt(row.sectionReg.Int64, 10)
+		}
+		group := ""
+		if row.group.Int64 > 0 {
+			group = strconv.FormatInt(row.group.Int64, 10)
+		}
+		dateView := ""
+		if row.dateView != "" {
+			d, _ := time.Parse(time.RFC3339, row.dateView)
+			dateView = d.Format("02.01.2006")
+			if d.Sub(time.Now().AddDate(0, 0, -152)) < 0 {
+				rereg = true
+			}
+		}
+
+		patientName, _ := utils.ToUTF8(row.patientName)
+		address, _ := utils.ToUTF8(row.address)
+		//mech, _ := utils.ToUTF8(row.mech)
+		invalid, _ := utils.ToUTF8(row.invalid)
+		//sick, _ := utils.ToUTF8(row.sick)
+		if rereg {
+			f.SetCellStyle(sheet, cellExcel(1, nRow), cellExcel(cols, nRow), page.CellStyleBodyColor(9, "#ededed"))
+		} else {
+			f.SetCellStyle(sheet, cellExcel(1, nRow), cellExcel(cols, nRow), page.CellStyleBody(9))
+		}
+		page.SetCellInt(1, nRow, row.patientId)
+		page.SetCellStr(2, nRow, patientName)
+		page.SetCellStr(3, nRow, bday)
+		page.SetCellStr(4, nRow, startOp)
+		page.SetCellStr(5, nRow, endOp)
+		page.SetCellStr(6, nRow, row.mech)
+		page.SetCellStr(7, nRow, sectionStac)
+		page.SetCellStr(8, nRow, category)
+		page.SetCellStr(9, nRow, sectionReg)
+		page.SetCellStr(10, nRow, group)
+		page.SetCellStr(11, nRow, dateView)
+		page.SetCellStr(12, nRow, address)
+		page.SetCellStr(13, nRow, invalid)
+		page.SetCellStr(14, nRow, row.sick)
+
+		nRow += 1
+		sum += 1
+	}
+	sty = page.CellStyleTitle("left", "center", false, 9)
+	page.Title(fmt.Sprintf("Всего: %v", sum), cellExcel(1, nRow), cellExcel(9, nRow), sty)
+	nRow += 1
+	page.Title("По данным отдела АСУ", cellExcel(1, nRow), cellExcel(9, nRow), sty)
+	page.Title(fmt.Sprintf("Получено %s ", time.Now().Format("02.01.2006 15:04:05")), cellExcel(1, nRow+1), cellExcel(8, nRow+1), sty)
+
+	buf, _ := f.WriteToBuffer()
+	return buf, nil
+}
+
+func (r *ReportsJob) AmbulatoryTreatment(p reportParams, tx *sql.Tx) (*bytes.Buffer, error) {
+
+	cellExcel := excel.CellExcel
+	toCharStrConst := excel.ToCharStrConst
+
+	f := excel.CreateFile()
+	sheet := f.GetSheetName(0)
+	f.SetPageLayout(sheet,
+		excelize.PageLayoutOrientation(excelize.OrientationLandscape),
+		excelize.PageLayoutPaperSize(9),
+	)
+	page := excel.Page{f, sheet}
+
+	dateStart, _ := time.Parse("2006-01-02", p.Filters.DateStart)
+	cols := 14
+	sty := page.CellStyleTitle("center", "center", false, 9)
+	page.Title(
+		fmt.Sprintf("Список находящихся на АПЛ по состоянию на %s", dateStart.Format("02.01.2006")),
+		cellExcel(1, 1), cellExcel(cols, 1), sty)
+	// row 2
+	f.SetRowHeight(sheet, 2, 27)
+	f.SetCellStyle(sheet, cellExcel(1, 2), cellExcel(cols, 2), page.CellStyleHeader(9))
+	f.SetCellStr(sheet, cellExcel(1, 2), "")
+	f.SetCellStr(sheet, cellExcel(2, 2), "Ф.И.О.")
+	f.SetCellStr(sheet, cellExcel(3, 2), "Д.р.")
+	f.SetCellStr(sheet, cellExcel(4, 2), "Первое определ.")
+	f.SetCellStr(sheet, cellExcel(5, 2), "Последн определ.")
+	f.SetCellStr(sheet, cellExcel(6, 2), "Мех")
+	f.SetCellStr(sheet, cellExcel(7, 2), "Отд.")
+	f.SetCellStr(sheet, cellExcel(8, 2), "Кат. учета")
+	f.SetCellStr(sheet, cellExcel(9, 2), "Участок учета")
+	f.SetCellStr(sheet, cellExcel(10, 2), "Группа учета")
+	f.SetCellStr(sheet, cellExcel(11, 2), "Последний осмотр")
+	f.SetCellStr(sheet, cellExcel(12, 2), "Адрес")
+	f.SetCellStr(sheet, cellExcel(13, 2), "Инв.")
+	f.SetCellStr(sheet, cellExcel(14, 2), "Заболел")
+
+	f.SetColWidth(sheet, toCharStrConst(1), toCharStrConst(1), 7.29)
+	f.SetColWidth(sheet, toCharStrConst(2), toCharStrConst(2), 18.57)
+	f.SetColWidth(sheet, toCharStrConst(3), toCharStrConst(3), 9.43)
+	f.SetColWidth(sheet, toCharStrConst(4), toCharStrConst(4), 9.43)
+	f.SetColWidth(sheet, toCharStrConst(5), toCharStrConst(5), 9.43)
+	f.SetColWidth(sheet, toCharStrConst(6), toCharStrConst(6), 7.43)
+	f.SetColWidth(sheet, toCharStrConst(7), toCharStrConst(7), 6)
+	f.SetColWidth(sheet, toCharStrConst(8), toCharStrConst(8), 6)
+	f.SetColWidth(sheet, toCharStrConst(9), toCharStrConst(9), 6)
+	f.SetColWidth(sheet, toCharStrConst(10), toCharStrConst(10), 6)
+	f.SetColWidth(sheet, toCharStrConst(11), toCharStrConst(11), 9.43)
+	f.SetColWidth(sheet, toCharStrConst(12), toCharStrConst(12), 13.43)
+	f.SetColWidth(sheet, toCharStrConst(13), toCharStrConst(13), 8.57)
+	f.SetColWidth(sheet, toCharStrConst(14), toCharStrConst(14), 8.57)
+
+	sqlQuery := fmt.Sprintf(`SELECT patient_id, fio, bday, nach, tek_opr, 
+CASE WHEN tr = 1 THEN 'п/п' when tr = 2 THEN 'н/л' ELSE '?' end, 
+otd, kat, uch, gruppa, osmotr, adr, inv, 
+CASE WHEN zabolel = 1 THEN 'до' WHEN zabolel = 2 THEN 'пос' ELSE '?' end 
+from sps_pl_nahod('%s') where (gruppa <> 2 or (gruppa = 2 and otd is not null)) and gruppa = 4 order by otd, fio`,
+		p.Filters.DateStart)
+
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+	type data struct {
+		patientId   int
+		patientName string
+		bday        string
+		startOp     string
+		endOp       string
+		mech        string
+		sectionStac sql.NullInt64
+		category    sql.NullInt64
+		sectionReg  sql.NullInt64
+		group       sql.NullInt64
+		dateView    string
+		address     string
+		invalid     string
+		sick        string
+	}
+
+	nRow := 3
+	sum := 0
+	for rows.Next() {
+		rereg := false
+		row := data{}
+		rows.Scan(&row.patientId, &row.patientName, &row.bday, &row.startOp, &row.endOp, &row.mech, &row.sectionStac,
+			&row.category, &row.sectionReg, &row.group, &row.dateView, &row.address, &row.invalid, &row.sick)
+		bd, _ := time.Parse(time.RFC3339, row.bday)
+		bday := bd.Format("02.01.2006")
+		startOp := ""
+		if row.startOp != "" {
+			d, _ := time.Parse(time.RFC3339, row.startOp)
+			startOp = d.Format("02.01.2006")
+			if d.Sub(time.Now().AddDate(0, 0, -152)) < 0 {
+				rereg = true
+			}
+		}
+		endOp := ""
+		if row.endOp != "" {
+			d, _ := time.Parse(time.RFC3339, row.endOp)
+			endOp = d.Format("02.01.2006")
+		}
+		sectionStac := ""
+		if row.sectionStac.Int64 > 0 {
+			sectionStac = strconv.FormatInt(row.sectionStac.Int64, 10)
+		}
+		category := ""
+		if row.category.Int64 > 0 {
+			category = strconv.FormatInt(row.category.Int64, 10)
+		}
+		sectionReg := ""
+		if row.sectionReg.Int64 > 0 {
+			sectionReg = strconv.FormatInt(row.sectionReg.Int64, 10)
+		}
+		group := ""
+		if row.group.Int64 > 0 {
+			group = strconv.FormatInt(row.group.Int64, 10)
+		}
+		dateView := ""
+		if row.dateView != "" {
+			d, _ := time.Parse(time.RFC3339, row.dateView)
+			dateView = d.Format("02.01.2006")
+			if d.Sub(time.Now().AddDate(0, 0, -152)) < 0 {
+				rereg = true
+			}
+		}
+
+		patientName, _ := utils.ToUTF8(row.patientName)
+		address, _ := utils.ToUTF8(row.address)
+		//mech, _ := utils.ToUTF8(row.mech)
+		invalid, _ := utils.ToUTF8(row.invalid)
+		//sick, _ := utils.ToUTF8(row.sick)
+
+		if rereg {
+			f.SetCellStyle(sheet, cellExcel(1, nRow), cellExcel(cols, nRow), page.CellStyleBodyColor(9, "#ededed"))
+		} else {
+			f.SetCellStyle(sheet, cellExcel(1, nRow), cellExcel(cols, nRow), page.CellStyleBody(9))
+		}
+		page.SetCellInt(1, nRow, row.patientId)
+		page.SetCellStr(2, nRow, patientName)
+		page.SetCellStr(3, nRow, bday)
+		page.SetCellStr(4, nRow, startOp)
+		page.SetCellStr(5, nRow, endOp)
+		page.SetCellStr(6, nRow, row.mech)
+		page.SetCellStr(7, nRow, sectionStac)
+		page.SetCellStr(8, nRow, category)
+		page.SetCellStr(9, nRow, sectionReg)
+		page.SetCellStr(10, nRow, group)
+		page.SetCellStr(11, nRow, dateView)
+		page.SetCellStr(12, nRow, address)
+		page.SetCellStr(13, nRow, invalid)
+		page.SetCellStr(14, nRow, row.sick)
+
+		nRow += 1
+		sum += 1
+	}
+	sty = page.CellStyleTitle("left", "center", false, 9)
+	page.Title(fmt.Sprintf("Всего: %v", sum), cellExcel(1, nRow), cellExcel(9, nRow), sty)
+	nRow += 1
+	page.Title("По данным отдела АСУ", cellExcel(1, nRow), cellExcel(9, nRow), sty)
+	page.Title(fmt.Sprintf("Получено %s ", time.Now().Format("02.01.2006 15:04:05")), cellExcel(1, nRow+1), cellExcel(8, nRow+1), sty)
+
+	buf, _ := f.WriteToBuffer()
+	return buf, nil
+}
+
+func (r *ReportsJob) PBSTIN(p reportParams, tx *sql.Tx) (*bytes.Buffer, error) {
+
+	cellExcel := excel.CellExcel
+	toCharStrConst := excel.ToCharStrConst
+
+	f := excel.CreateFile()
+	sheet := f.GetSheetName(0)
+	f.SetPageLayout(sheet,
+		excelize.PageLayoutOrientation(excelize.OrientationLandscape),
+		excelize.PageLayoutPaperSize(9),
+	)
+	page := excel.Page{f, sheet}
+
+	dateStart, _ := time.Parse("2006-01-02", p.Filters.DateStart)
+	cols := 14
+	sty := page.CellStyleTitle("center", "center", false, 9)
+	page.Title(
+		fmt.Sprintf("Список находящихся в ПБСТИН по состоянию на %s", dateStart.Format("02.01.2006")),
+		cellExcel(1, 1), cellExcel(cols, 1), sty)
+	// row 2
+	f.SetRowHeight(sheet, 2, 27)
+	f.SetCellStyle(sheet, cellExcel(1, 2), cellExcel(cols, 2), page.CellStyleHeader(9))
+	f.SetCellStr(sheet, cellExcel(1, 2), "")
+	f.SetCellStr(sheet, cellExcel(2, 2), "Ф.И.О.")
+	f.SetCellStr(sheet, cellExcel(3, 2), "Д.р.")
+	f.SetCellStr(sheet, cellExcel(4, 2), "Первое определ.")
+	f.SetCellStr(sheet, cellExcel(5, 2), "Последн определ.")
+	f.SetCellStr(sheet, cellExcel(6, 2), "Мех")
+	f.SetCellStr(sheet, cellExcel(7, 2), "Отд.")
+	f.SetCellStr(sheet, cellExcel(8, 2), "Кат. учета")
+	f.SetCellStr(sheet, cellExcel(9, 2), "Участок учета")
+	f.SetCellStr(sheet, cellExcel(10, 2), "Группа учета")
+	f.SetCellStr(sheet, cellExcel(11, 2), "Последний осмотр")
+	f.SetCellStr(sheet, cellExcel(12, 2), "Адрес")
+	f.SetCellStr(sheet, cellExcel(13, 2), "Инв.")
+	f.SetCellStr(sheet, cellExcel(14, 2), "Заболел")
+
+	f.SetColWidth(sheet, toCharStrConst(1), toCharStrConst(1), 7.29)
+	f.SetColWidth(sheet, toCharStrConst(2), toCharStrConst(2), 18.57)
+	f.SetColWidth(sheet, toCharStrConst(3), toCharStrConst(3), 9.43)
+	f.SetColWidth(sheet, toCharStrConst(4), toCharStrConst(4), 9.43)
+	f.SetColWidth(sheet, toCharStrConst(5), toCharStrConst(5), 9.43)
+	f.SetColWidth(sheet, toCharStrConst(6), toCharStrConst(6), 7.43)
+	f.SetColWidth(sheet, toCharStrConst(7), toCharStrConst(7), 6)
+	f.SetColWidth(sheet, toCharStrConst(8), toCharStrConst(8), 6)
+	f.SetColWidth(sheet, toCharStrConst(9), toCharStrConst(9), 6)
+	f.SetColWidth(sheet, toCharStrConst(10), toCharStrConst(10), 6)
+	f.SetColWidth(sheet, toCharStrConst(11), toCharStrConst(11), 9.43)
+	f.SetColWidth(sheet, toCharStrConst(12), toCharStrConst(12), 13.43)
+	f.SetColWidth(sheet, toCharStrConst(13), toCharStrConst(13), 8.57)
+	f.SetColWidth(sheet, toCharStrConst(14), toCharStrConst(14), 8.57)
+
+	sqlQuery := fmt.Sprintf(`SELECT patient_id, fio, bday, nach, tek_opr, 
+CASE WHEN tr = 1 THEN 'п/п' when tr = 2 THEN 'н/л' ELSE '?' end, 
+otd, kat, uch, gruppa, osmotr, adr, inv, 
+CASE WHEN zabolel = 1 THEN 'до' WHEN zabolel = 2 THEN 'пос' ELSE '?' end 
+from sps_pl_nahod('%s') where gruppa = 2 order by fio`,
+		p.Filters.DateStart)
+
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+	type data struct {
+		patientId   int
+		patientName string
+		bday        string
+		startOp     string
+		endOp       string
+		mech        string
+		sectionStac sql.NullInt64
+		category    sql.NullInt64
+		sectionReg  sql.NullInt64
+		group       sql.NullInt64
+		dateView    string
+		address     string
+		invalid     string
+		sick        string
+	}
+
+	nRow := 3
+	sum := 0
+	for rows.Next() {
+		row := data{}
+		rows.Scan(&row.patientId, &row.patientName, &row.bday, &row.startOp, &row.endOp, &row.mech, &row.sectionStac,
+			&row.category, &row.sectionReg, &row.group, &row.dateView, &row.address, &row.invalid, &row.sick)
+		bd, _ := time.Parse(time.RFC3339, row.bday)
+		bday := bd.Format("02.01.2006")
+		startOp := ""
+		if row.startOp != "" {
+			d, _ := time.Parse(time.RFC3339, row.startOp)
+			startOp = d.Format("02.01.2006")
+		}
+		endOp := ""
+		if row.endOp != "" {
+			d, _ := time.Parse(time.RFC3339, row.endOp)
+			endOp = d.Format("02.01.2006")
+		}
+		sectionStac := ""
+		if row.sectionStac.Int64 > 0 {
+			sectionStac = strconv.FormatInt(row.sectionStac.Int64, 10)
+		}
+		category := ""
+		if row.category.Int64 > 0 {
+			category = strconv.FormatInt(row.category.Int64, 10)
+		}
+		sectionReg := ""
+		if row.sectionReg.Int64 > 0 {
+			sectionReg = strconv.FormatInt(row.sectionReg.Int64, 10)
+		}
+		group := ""
+		if row.group.Int64 > 0 {
+			group = strconv.FormatInt(row.group.Int64, 10)
+		}
+		dateView := ""
+		if row.dateView != "" {
+			d, _ := time.Parse(time.RFC3339, row.dateView)
+			dateView = d.Format("02.01.2006")
+		}
+
+		patientName, _ := utils.ToUTF8(row.patientName)
+		address, _ := utils.ToUTF8(row.address)
+		//mech, _ := utils.ToUTF8(row.mech)
+		invalid, _ := utils.ToUTF8(row.invalid)
+		//sick, _ := utils.ToUTF8(row.sick)
+
+		f.SetCellStyle(sheet, cellExcel(1, nRow), cellExcel(cols, nRow), page.CellStyleBody(9))
+		page.SetCellInt(1, nRow, row.patientId)
+		page.SetCellStr(2, nRow, patientName)
+		page.SetCellStr(3, nRow, bday)
+		page.SetCellStr(4, nRow, startOp)
+		page.SetCellStr(5, nRow, endOp)
+		page.SetCellStr(6, nRow, row.mech)
+		page.SetCellStr(7, nRow, sectionStac)
+		page.SetCellStr(8, nRow, category)
+		page.SetCellStr(9, nRow, sectionReg)
+		page.SetCellStr(10, nRow, group)
+		page.SetCellStr(11, nRow, dateView)
+		page.SetCellStr(12, nRow, address)
+		page.SetCellStr(13, nRow, invalid)
+		page.SetCellStr(14, nRow, row.sick)
+
+		nRow += 1
+		sum += 1
+	}
+	sty = page.CellStyleTitle("left", "center", false, 9)
+	page.Title(fmt.Sprintf("Всего: %v", sum), cellExcel(1, nRow), cellExcel(9, nRow), sty)
+	nRow += 1
+	page.Title("По данным отдела АСУ", cellExcel(1, nRow), cellExcel(9, nRow), sty)
+	page.Title(fmt.Sprintf("Получено %s ", time.Now().Format("02.01.2006 15:04:05")), cellExcel(1, nRow+1), cellExcel(8, nRow+1), sty)
+
+	buf, _ := f.WriteToBuffer()
+	return buf, nil
+}
+
+func (r *ReportsJob) TakenForADNAccordingToClinical(p reportParams, tx *sql.Tx) (*bytes.Buffer, error) {
+	if len(p.Filters.RangeDate) < 2 {
+		return nil, errors.New(consts.ArrErrors[750])
+	}
+
+	sqlQuery := fmt.Sprintf(`select pid, fio, bd, uch, rd, diag from sps_pl_klin('%s','%s') order by fio`,
+		p.Filters.RangeDate[0], p.Filters.RangeDate[1])
+
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+	type data struct {
+		patientId   int
+		patientName string
+		bday        string
+		section     int
+		regDate     string
+		diagnose    string
+	}
+	dateStart, _ := time.Parse("2006-01-02", p.Filters.RangeDate[0])
+	dateEnd, _ := time.Parse("2006-01-02", p.Filters.RangeDate[1])
+
+	cellExcel := excel.CellExcel
+	toCharStrConst := excel.ToCharStrConst
+
+	f := excel.CreateFile()
+	sheet := f.GetSheetName(0)
+	f.SetPageLayout(sheet,
+		excelize.PageLayoutOrientation(excelize.OrientationPortrait),
+		excelize.PageLayoutPaperSize(9),
+	)
+	page := excel.Page{f, sheet}
+
+	sty := page.CellStyleTitle("center", "center", false, 9)
+	collCount := 7
+	// row 1
+	page.Title(
+		fmt.Sprintf("Список пациентов взятых на АДН по клиническим показаниям"),
+		cellExcel(1, 1), cellExcel(collCount, 1), sty)
+	page.Title(
+		fmt.Sprintf("за период с %s по %s", dateStart.Format("02.01.2006"), dateEnd.Format("02.01.2006")),
+		cellExcel(1, 2), cellExcel(collCount, 2), sty)
+	// row 3
+	f.SetRowHeight(sheet, 3, 27)
+	f.SetCellStyle(sheet, cellExcel(1, 3), cellExcel(collCount, 3), page.CellStyleHeader(9))
+	f.SetCellStr(sheet, cellExcel(1, 3), "")
+	f.SetCellStr(sheet, cellExcel(2, 3), "Шифр")
+	f.SetCellStr(sheet, cellExcel(3, 3), "Ф.И.О.")
+	f.SetCellStr(sheet, cellExcel(4, 3), "Д.р.")
+	f.SetCellStr(sheet, cellExcel(5, 3), "Участок")
+	f.SetCellStr(sheet, cellExcel(6, 3), "Дата взятия")
+	f.SetCellStr(sheet, cellExcel(7, 3), "Диагноз")
+
+	f.SetColWidth(sheet, toCharStrConst(1), toCharStrConst(1), 4.29)
+	f.SetColWidth(sheet, toCharStrConst(2), toCharStrConst(2), 7.29)
+	f.SetColWidth(sheet, toCharStrConst(3), toCharStrConst(3), 28)
+	f.SetColWidth(sheet, toCharStrConst(4), toCharStrConst(4), 10.14)
+	f.SetColWidth(sheet, toCharStrConst(5), toCharStrConst(5), 10.14)
+	f.SetColWidth(sheet, toCharStrConst(6), toCharStrConst(6), 10.29)
+	f.SetColWidth(sheet, toCharStrConst(7), toCharStrConst(7), 10.14)
+
+	nRow := 4
+	nz := 1
+	for rows.Next() {
+		row := data{}
+		rows.Scan(&row.patientId, &row.patientName, &row.bday, &row.section, &row.regDate, &row.diagnose)
+
+		bd, _ := time.Parse(time.RFC3339, row.bday)
+		bday := bd.Format("02.01.2006")
+
+		bd, _ = time.Parse(time.RFC3339, row.regDate)
+		regDate := bd.Format("02.01.2006")
+
+		patientName, _ := utils.ToUTF8(row.patientName)
+
+		f.SetCellStyle(sheet, cellExcel(1, nRow), cellExcel(collCount, nRow), page.CellStyleBody(9))
+		page.SetCellInt(1, nRow, nz)
+		page.SetCellInt(2, nRow, row.patientId)
+		page.SetCellStr(3, nRow, patientName)
+		page.SetCellStr(4, nRow, bday)
+		page.SetCellInt(5, nRow, row.section)
+		page.SetCellStr(6, nRow, regDate)
+		page.SetCellStr(7, nRow, row.diagnose)
+
+		nRow += 1
+		nz += 1
+	}
+	sty = page.CellStyleTitle("left", "center", false, 9)
+	page.Title("По данным отдела АСУ", cellExcel(1, nRow), cellExcel(collCount, nRow), sty)
+	page.Title(fmt.Sprintf("Получено %s ", time.Now().Format("02.01.2006 15:04:05")), cellExcel(1, nRow+1), cellExcel(collCount, nRow+1), sty)
+
+	buf, _ := f.WriteToBuffer()
+	return buf, nil
+}
+
+func (r *ReportsJob) ProtocolUKL(p reportParams, tx *sql.Tx) (*bytes.Buffer, error) {
+	if p.Filters.Id == 0 {
+		return nil, errors.New(consts.ArrErrors[753])
+	}
+
+	sqlQuery := fmt.Sprintf(`select nom_z,
+p1_1, p1_2, p1_3, p1_4, p1_5, p1_6, p1_7, p1_8, p1_9, p1_10, p1_11, p1_12, p1_13, p1_14, p1_15, p1_16, p1_17, p1_18, p1_19, p1_20, p1_21, p1_22, p1_23, p1_24, p1_25, p1_26, p1_27, p1_28, p1_29, p1_30, p1_31, p1_32, p1_33, p1_34, p1_35,
+p2_1, p2_2, p2_3, p2_4, p2_5, p2_6, p2_7, p2_8, p2_9, p2_10, p2_11, p2_12, p2_13, p2_14, p2_15, p2_16, p2_17, p2_18, p2_19, p2_20, p2_21, p2_22, p2_23, p2_24, p2_25, p2_26, p2_27, p2_28, p2_29, p2_30, p2_31, p2_32, p2_33, p2_34, p2_35,
+p3_1, p3_2, p3_3, p3_4, p3_5, p3_6, p3_7, p3_8, p3_9, p3_10, p3_11, p3_12, p3_13, p3_14, p3_15, p3_16, p3_17, p3_18, p3_19, p3_20, p3_21, p3_22, p3_23, p3_24, p3_25, p3_26, p3_27, p3_28, p3_29, p3_30, p3_31, p3_32, p3_33, p3_34, p3_35,
+NZ_REGISTRAT, p1_user, p2_user, p3_user, p1_date, p2_date, p3_date, dock
+from UKL where nom_z = ?`)
+
+	row := tx.QueryRow(sqlQuery, p.Filters.Id)
+	//dateStart, _ := time.Parse("2006-01-02", p.Filters.RangeDate[0])
+	//dateEnd, _ := time.Parse("2006-01-02", p.Filters.RangeDate[1])
+
+	cellExcel := excel.CellExcel
+	toCharStrConst := excel.ToCharStrConst
+
+	f := excel.CreateFile()
+	sheet := f.GetSheetName(0)
+	f.SetPageLayout(sheet,
+		excelize.PageLayoutOrientation(excelize.OrientationPortrait),
+		excelize.PageLayoutPaperSize(9),
+	)
+	page := excel.Page{f, sheet}
+
+	sty := page.CellStyleTitle("center", "center", false, 9)
+	collCount := 7
+	// row 1
+	page.Title(
+		fmt.Sprintf("Список пациентов взятых на АДН по клиническим показаниям"),
+		cellExcel(1, 1), cellExcel(collCount, 1), sty)
+	// row 3
+	f.SetRowHeight(sheet, 3, 27)
+	f.SetCellStyle(sheet, cellExcel(1, 3), cellExcel(collCount, 3), page.CellStyleHeader(9))
+	f.SetCellStr(sheet, cellExcel(1, 3), "")
+	f.SetCellStr(sheet, cellExcel(2, 3), "Шифр")
+	f.SetCellStr(sheet, cellExcel(3, 3), "Ф.И.О.")
+	f.SetCellStr(sheet, cellExcel(4, 3), "Д.р.")
+	f.SetCellStr(sheet, cellExcel(5, 3), "Участок")
+	f.SetCellStr(sheet, cellExcel(6, 3), "Дата взятия")
+	f.SetCellStr(sheet, cellExcel(7, 3), "Диагноз")
+
+	f.SetColWidth(sheet, toCharStrConst(1), toCharStrConst(1), 4.29)
+	f.SetColWidth(sheet, toCharStrConst(2), toCharStrConst(2), 7.29)
+	f.SetColWidth(sheet, toCharStrConst(3), toCharStrConst(3), 28)
+	f.SetColWidth(sheet, toCharStrConst(4), toCharStrConst(4), 10.14)
+	f.SetColWidth(sheet, toCharStrConst(5), toCharStrConst(5), 10.14)
+	f.SetColWidth(sheet, toCharStrConst(6), toCharStrConst(6), 10.29)
+	f.SetColWidth(sheet, toCharStrConst(7), toCharStrConst(7), 10.14)
+
+	data := types.UKLData{}
+	err := row.Scan(
+		&data.Id,
+		&data.P1_1, &data.P1_2, &data.P1_3, &data.P1_4, &data.P1_5, &data.P1_6, &data.P1_7, &data.P1_8, &data.P1_9, &data.P1_10, &data.P1_11, &data.P1_12, &data.P1_13, &data.P1_14, &data.P1_15, &data.P1_16, &data.P1_17, &data.P1_18, &data.P1_19, &data.P1_20, &data.P1_21, &data.P1_22, &data.P1_23, &data.P1_24, &data.P1_25, &data.P1_26, &data.P1_27, &data.P1_28, &data.P1_29, &data.P1_30, &data.P1_31, &data.P1_32, &data.P1_33, &data.P1_34, &data.P1_35,
+		&data.P2_1, &data.P2_2, &data.P2_3, &data.P2_4, &data.P2_5, &data.P2_6, &data.P2_7, &data.P2_8, &data.P2_9, &data.P2_10, &data.P2_11, &data.P2_12, &data.P2_13, &data.P2_14, &data.P2_15, &data.P2_16, &data.P2_17, &data.P2_18, &data.P2_19, &data.P2_20, &data.P2_21, &data.P2_22, &data.P2_23, &data.P2_24, &data.P2_25, &data.P2_26, &data.P2_27, &data.P2_28, &data.P2_29, &data.P2_30, &data.P2_31, &data.P2_32, &data.P2_33, &data.P2_34, &data.P2_35,
+		&data.P3_1, &data.P3_2, &data.P3_3, &data.P3_4, &data.P3_5, &data.P3_6, &data.P3_7, &data.P3_8, &data.P3_9, &data.P3_10, &data.P3_11, &data.P3_12, &data.P3_13, &data.P3_14, &data.P3_15, &data.P3_16, &data.P3_17, &data.P3_18, &data.P3_19, &data.P3_20, &data.P3_21, &data.P3_22, &data.P3_23, &data.P3_24, &data.P3_25, &data.P3_26, &data.P3_27, &data.P3_28, &data.P3_29, &data.P3_30, &data.P3_31, &data.P3_32, &data.P3_33, &data.P3_34, &data.P3_35,
+		&data.RegistratId, &data.User1, &data.User2, &data.User3, &data.Date1, &data.Date2, &data.Date3, &data.Doctor,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	sty = page.CellStyleTitle("left", "center", false, 9)
+	//page.Title("По данным отдела АСУ", cellExcel(1, nRow), cellExcel(collCount, nRow), sty)
+	//page.Title(fmt.Sprintf("Получено %s ", time.Now().Format("02.01.2006 15:04:05")), cellExcel(1, nRow+1), cellExcel(collCount, nRow+1), sty)
+
+	buf, _ := f.WriteToBuffer()
 	return buf, nil
 }

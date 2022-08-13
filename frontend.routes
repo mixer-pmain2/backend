@@ -3,6 +3,7 @@
 /profile
 /disp
 /patient/find
+/patient/findByAddress
 /patient/new
 /patient/{id}
 /administration

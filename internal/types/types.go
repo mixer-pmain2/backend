@@ -218,15 +218,6 @@ type LocationDoctor struct {
 	Unit    int    `json:"unit"`
 }
 
-type Doctor struct {
-	Id     int    `json:"id"`
-	Lname  string `json:"lname"`
-	Fname  string `json:"fname"`
-	Sname  string `json:"sname"`
-	Access int    `json:"access"`
-	Z152   int    `json:"z152"`
-}
-
 //administration
 
 type DoctorBySection struct {
@@ -238,4 +229,17 @@ type NewDoctorLocation struct {
 	Date string            `json:"date"`
 	Unit int               `json:"unit"`
 	Data []DoctorBySection `json:"data"`
+}
+
+type NewDoctorLeadSection struct {
+	Month int               `json:"month"`
+	Year  int               `json:"year"`
+	Unit  int               `json:"unit"`
+	Data  []DoctorBySection `json:"data"`
+}
+
+type FindDoctorLead struct {
+	Unit  int `json:"unit"`
+	Month int `json:"month"`
+	Year  int `json:"year"`
 }

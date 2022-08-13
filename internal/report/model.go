@@ -6,9 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"pmain2/internal/database"
-	"pmain2/pkg/utils/dll"
-	"syscall"
-	"unsafe"
 )
 
 var (
@@ -103,6 +100,12 @@ func saveReport(p reportParams, buf *bytes.Buffer, tx *sql.Tx) (sql.Result, erro
 	return tx.Exec(sqlQuery, "DONE", buf.String(), p.Id)
 }
 
+func deleteOlderReport(day int, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`DELETE FROM REPORT_JOB rj WHERE rj.INS_DATE <= dateadd(-%v DAY TO timestamp 'NOW')`, day)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
 func getJob(id int, tx *sql.Tx) (*[]byte, error) {
 	sqlQuery := fmt.Sprintf(`select report from report_job where id = %v`, id)
 	row := tx.QueryRow(sqlQuery)
@@ -113,15 +116,4 @@ func getJob(id int, tx *sql.Tx) (*[]byte, error) {
 	}
 
 	return &data, nil
-}
-
-func visitLastDate(d1, d2 string) (uintptr, error) {
-	l := dll.Open("FormsVisit.dll")
-	defer l.Free()
-	proc := l.Proc("VisitLastDate")
-	date1, _ := syscall.UTF16PtrFromString(d1)
-	date2, _ := syscall.UTF16PtrFromString(d2)
-	r1, r2, err := proc.Call(uintptr(unsafe.Pointer(date1)), uintptr(unsafe.Pointer(date2)))
-	fmt.Println("visitLastDate", r1, r2, err)
-	return r1, err
 }

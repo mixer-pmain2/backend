@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"pmain2/internal/apperror"
+	"pmain2/internal/consts"
 	"pmain2/internal/types"
 	"pmain2/pkg/utils"
 	"strings"
@@ -47,7 +48,7 @@ func (m *patientModel) Get(id int64, tx *sql.Tx) (*types.Patient, error) {
 	sql := fmt.Sprintf(`select patient_id, lname, fname, sname,
 bday, bl_group, sex, job, adres,
 passp_ser, passp_num, residence,
-republic, region, district, pop_area, street, house, building, flat, domicile
+republic, region, district, pop_area, street, trim(house), trim(building), trim(flat), domicile
 from general g, find_adres(g.patient_id,0) where patient_id=%v`, id)
 	INFO.Println(sql)
 	row := tx.QueryRow(sql)
@@ -96,6 +97,47 @@ func (m *patientModel) FindByFIO(lname, fname, sname string, tx *sql.Tx) (*[]typ
 		return nil, err
 	}
 	rows, err := stmt.Query(lname+"%", fname+"%", sname+"%")
+	defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	p := types.Patient{}
+	for rows.Next() {
+		err = rows.Scan(&p.Id, &p.Lname, &p.Fname, &p.Sname, &p.Bday, &p.Visibility, &p.Sex, &p.Snils)
+		if err != nil {
+			return nil, err
+		}
+		p.Serialize()
+		data = append(data, p)
+	}
+	return &data, nil
+}
+
+func (m *patientModel) FindByAddress(address types.Patient, tx *sql.Tx) (*[]types.Patient, error) {
+	var data = make([]types.Patient, 0)
+	sql := fmt.Sprintf(`select patient_id, lname, fname, sname, bday, bl_group, sex, job 
+from general where republic = %v`, address.Republic)
+	if address.Region > 0 {
+		sql += fmt.Sprintf(` and region = %v`, address.Region)
+	}
+	if address.District > 0 {
+		sql += fmt.Sprintf(` and district = %v`, address.District)
+	}
+	if address.Area > 0 {
+		sql += fmt.Sprintf(` and pop_area = %v`, address.Area)
+	}
+	if address.Street > 0 {
+		sql += fmt.Sprintf(` and street = %v`, address.Street)
+	}
+	if address.House != "" {
+		sql += fmt.Sprintf(` and house = '%s'`, address.House)
+	}
+	if address.Build != "" {
+		sql += fmt.Sprintf(` and building = '%s'`, address.Build)
+	}
+	sql += " order by lname, fname, sname"
+	INFO.Println(sql)
+	rows, err := tx.Query(sql)
 	defer rows.Close()
 	if err != nil {
 		return nil, err
@@ -549,10 +591,14 @@ set passp_ser = '%s', passp_num = %v, job = '%s', residence = %v where patient_i
 
 func (m *patientModel) UpdAddress(address *types.Patient, tx *sql.Tx) (sql.Result, error) {
 	sqlQuery := fmt.Sprintf(`update general
-set republic = %v, region = %v, district = %v, pop_area = %v, street = %v, house = '%s', building = '%s', flat = '%s', domicile = %v where patient_id = %v`,
-		address.Republic, address.Region, address.District, address.Area, address.Street, address.House, address.Build, address.Flat, address.Domicile, address.Id)
+set republic = ?, region = ?, district = ?, pop_area = ?, street = ?, house = ?, building = ?, flat = ?, domicile = ? where patient_id = ?`)
 	INFO.Println(sqlQuery)
-	return tx.Exec(sqlQuery)
+	stmt, err := tx.Prepare(sqlQuery)
+	defer stmt.Close()
+	if err != nil {
+		return nil, err
+	}
+	return stmt.Exec(address.Republic, address.Region, address.District, address.Area, address.Street, address.House, address.Build, address.Flat, address.Domicile, address.Id)
 }
 
 func (m *patientModel) GetSection22(id int64, tx *sql.Tx) (*[]types.ST22, error) {
@@ -659,4 +705,417 @@ func (m *patientModel) NewSOD(sod *types.SOD, tx *sql.Tx) (sql.Result, error) {
 values (%v, '%s', %v, %v, %v)`, sod.PatientId, sod.Date, sod.Section, sod.Part, 0)
 	INFO.Println(sqlQuery)
 	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) GetDoctorsVisitByPatient(id int, date time.Time, tx *sql.Tx) (*[]types.Doctor, error) {
+	sqlQuery := fmt.Sprintf(`select distinct b.KOD_DOCK_I , RTRIM(b.fio), rtrim(b.im), rtrim(b.ot)
+ from visit a, spr_doct b
+where a.patient_id = ?
+      and b.kod_dock_i = RTRIM(a.name_doct)
+      and a.v_date > ?
+order by 2`)
+
+	rows, err := tx.Query(sqlQuery, id, date)
+	defer rows.Close()
+	data := make([]types.Doctor, 0)
+	if err != nil {
+		return nil, err
+	}
+	var r = types.Doctor{}
+	for rows.Next() {
+		rows.Scan(&r.Id, &r.Lname, &r.Fname, &r.Sname)
+		r.Lname, _ = utils.ToUTF8(r.Lname)
+		r.Fname, _ = utils.ToUTF8(r.Fname)
+		r.Sname, _ = utils.ToUTF8(r.Sname)
+		data = append(data, r)
+	}
+
+	return &data, nil
+}
+
+func (m *patientModel) GetLastUKLByVisitPatient(id int, tx *sql.Tx) (*types.UKLData, error) {
+	sqlQuery := fmt.Sprintf(`select nom_z,
+p1_1, p1_2, p1_3, p1_4, p1_5, p1_6, p1_7, p1_8, p1_9, p1_10, p1_11, p1_12, p1_13, p1_14, p1_15, p1_16, p1_17, p1_18, p1_19, p1_20, p1_21, p1_22, p1_23, p1_24, p1_25, p1_26, p1_27, p1_28, p1_29, p1_30, p1_31, p1_32, p1_33, p1_34, p1_35,
+p2_1, p2_2, p2_3, p2_4, p2_5, p2_6, p2_7, p2_8, p2_9, p2_10, p2_11, p2_12, p2_13, p2_14, p2_15, p2_16, p2_17, p2_18, p2_19, p2_20, p2_21, p2_22, p2_23, p2_24, p2_25, p2_26, p2_27, p2_28, p2_29, p2_30, p2_31, p2_32, p2_33, p2_34, p2_35,
+p3_1, p3_2, p3_3, p3_4, p3_5, p3_6, p3_7, p3_8, p3_9, p3_10, p3_11, p3_12, p3_13, p3_14, p3_15, p3_16, p3_17, p3_18, p3_19, p3_20, p3_21, p3_22, p3_23, p3_24, p3_25, p3_26, p3_27, p3_28, p3_29, p3_30, p3_31, p3_32, p3_33, p3_34, p3_35,
+NZ_REGISTRAT, p1_user, p2_user, p3_user, p1_date, p2_date, p3_date, dock
+from ukl u
+where patient_id = ? and nom_z = (select max(nom_z) from ukl
+where patient_id = u.PATIENT_ID  and nz_Registrat <> 0)`)
+
+	row := tx.QueryRow(sqlQuery, id)
+	data := types.UKLData{}
+	row.Scan(
+		&data.Id,
+		&data.P1_1, &data.P1_2, &data.P1_3, &data.P1_4, &data.P1_5, &data.P1_6, &data.P1_7, &data.P1_8, &data.P1_9, &data.P1_10, &data.P1_11, &data.P1_12, &data.P1_13, &data.P1_14, &data.P1_15, &data.P1_16, &data.P1_17, &data.P1_18, &data.P1_19, &data.P1_20, &data.P1_21, &data.P1_22, &data.P1_23, &data.P1_24, &data.P1_25, &data.P1_26, &data.P1_27, &data.P1_28, &data.P1_29, &data.P1_30, &data.P1_31, &data.P1_32, &data.P1_33, &data.P1_34, &data.P1_35,
+		&data.P2_1, &data.P2_2, &data.P2_3, &data.P2_4, &data.P2_5, &data.P2_6, &data.P2_7, &data.P2_8, &data.P2_9, &data.P2_10, &data.P2_11, &data.P2_12, &data.P2_13, &data.P2_14, &data.P2_15, &data.P2_16, &data.P2_17, &data.P2_18, &data.P2_19, &data.P2_20, &data.P2_21, &data.P2_22, &data.P2_23, &data.P2_24, &data.P2_25, &data.P2_26, &data.P2_27, &data.P2_28, &data.P2_29, &data.P2_30, &data.P2_31, &data.P2_32, &data.P2_33, &data.P2_34, &data.P2_35,
+		&data.P3_1, &data.P3_2, &data.P3_3, &data.P3_4, &data.P3_5, &data.P3_6, &data.P3_7, &data.P3_8, &data.P3_9, &data.P3_10, &data.P3_11, &data.P3_12, &data.P3_13, &data.P3_14, &data.P3_15, &data.P3_16, &data.P3_17, &data.P3_18, &data.P3_19, &data.P3_20, &data.P3_21, &data.P3_22, &data.P3_23, &data.P3_24, &data.P3_25, &data.P3_26, &data.P3_27, &data.P3_28, &data.P3_29, &data.P3_30, &data.P3_31, &data.P3_32, &data.P3_33, &data.P3_34, &data.P3_35,
+		&data.RegistratId, &data.User1, &data.User2, &data.User3, &data.Date1, &data.Date2, &data.Date3, &data.Doctor,
+	)
+
+	return &data, nil
+}
+
+func (m *patientModel) NewUKLByVisitPatientLvl1(data *types.NewUKL, regId int, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`insert into ukl( PATIENT_ID,
+    P1_1, P1_2, P1_3,
+    P1_4, P1_5, P1_6,
+    P1_7, P1_8, P1_9,
+    P1_10, P1_11, P1_12,
+    P1_13, P1_14, P1_15,
+    P1_16, 
+    P1_USER, P1_DATE, NZ_REGISTRAT, dock, ins_dat)
+values( %v, 
+    %v, %v, %v,
+    %v, %v, %v,
+    %v, %v, %v,
+    %v, %v, %v,
+    %v, %v, %v,
+    %v,
+    %v, '%s', %v, %v, '%s')`,
+		data.PatientId,
+		data.Evaluations[0], data.Evaluations[1], data.Evaluations[2],
+		data.Evaluations[3], data.Evaluations[4], data.Evaluations[5],
+		data.Evaluations[6], data.Evaluations[7], data.Evaluations[8],
+		data.Evaluations[9], data.Evaluations[10], data.Evaluations[11],
+		data.Evaluations[12], data.Evaluations[13], data.Evaluations[14],
+		data.Evaluations[15],
+		data.UserId, data.Date, regId, data.DoctorId, time.Now().Format(consts.TIME_FORMAT_DB),
+	)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) NewUKLByVisitPatientLvl2(data *types.NewUKL, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`update ukl
+set P2_1 = %v,
+       P2_2 = %v, 
+       P2_3 = %v,
+       P2_4 = %v, 
+       P2_5 = %v, 
+       P2_6 = %v,
+       P2_7 = %v, 
+       P2_8 = %v, 
+       P2_9 = %v,
+       P2_10 = %v, 
+       P2_11 = %v, 
+       P2_12 = %v,
+       P2_13 = %v, 
+       P2_14 = %v, 
+       P2_15 = %v,
+       P2_16 = %v, 
+       P2_USER = %v, 
+       P2_DATE = '%s'
+where nom_z = %v`,
+		data.Evaluations[0], data.Evaluations[1], data.Evaluations[2],
+		data.Evaluations[3], data.Evaluations[4], data.Evaluations[5],
+		data.Evaluations[6], data.Evaluations[7], data.Evaluations[8],
+		data.Evaluations[9], data.Evaluations[10], data.Evaluations[11],
+		data.Evaluations[12], data.Evaluations[13], data.Evaluations[14],
+		data.Evaluations[15],
+		data.UserId, data.Date, data.Id,
+	)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) NewUKLByVisitPatientLvl3(data *types.NewUKL, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`update ukl
+set P3_1 = %v,
+       P3_2 = %v, 
+       P3_3 = %v,
+       P3_4 = %v, 
+       P3_5 = %v, 
+       P3_6 = %v,
+       P3_7 = %v, 
+       P3_8 = %v, 
+       P3_9 = %v,
+       P3_10 = %v, 
+       P3_11 = %v, 
+       P3_12 = %v,
+       P3_13 = %v, 
+       P3_14 = %v, 
+       P3_15 = %v,
+       P3_16 = %v, 
+       P3_USER = %v, 
+       P3_DATE = '%s'
+where nom_z = %v`,
+		data.Evaluations[0], data.Evaluations[1], data.Evaluations[2],
+		data.Evaluations[3], data.Evaluations[4], data.Evaluations[5],
+		data.Evaluations[6], data.Evaluations[7], data.Evaluations[8],
+		data.Evaluations[9], data.Evaluations[10], data.Evaluations[11],
+		data.Evaluations[12], data.Evaluations[13], data.Evaluations[14],
+		data.Evaluations[15],
+		data.UserId, data.Date, data.Id,
+	)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) CheckUKLLastVisit(patientId int, unit int, tx *sql.Tx) (*types.Visit, error) {
+	sqlQuery := `select V_NUM, V_DATE, NAME_DOCT, DIAGNOSE from visit
+where patient_id = ?
+and bin_and(maska2, ?) = ?
+and v_num = (select max(v_num) from visit where patient_id = ? and bin_and(maska2, ?) = ?)`
+	row := tx.QueryRow(sqlQuery, patientId, unit, unit, patientId, unit, unit)
+	data := types.Visit{}
+	err := row.Scan(&data.Id, &data.Date, &data.DockName, &data.Diag)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	return &data, nil
+}
+
+func (m *patientModel) GetLastUKLBySuicide(id int, tx *sql.Tx) (*types.UKLData, error) {
+	sqlQuery := fmt.Sprintf(`select nom_z,
+p1_1, p1_2, p1_3, p1_4, p1_5, p1_6, p1_7, p1_8, p1_9, p1_10, p1_11, p1_12, p1_13, p1_14, p1_15, p1_16, p1_17, p1_18, p1_19, p1_20, p1_21, p1_22, p1_23, p1_24, p1_25, p1_26, p1_27, p1_28, p1_29, p1_30, p1_31, p1_32, p1_33, p1_34, p1_35,
+p2_1, p2_2, p2_3, p2_4, p2_5, p2_6, p2_7, p2_8, p2_9, p2_10, p2_11, p2_12, p2_13, p2_14, p2_15, p2_16, p2_17, p2_18, p2_19, p2_20, p2_21, p2_22, p2_23, p2_24, p2_25, p2_26, p2_27, p2_28, p2_29, p2_30, p2_31, p2_32, p2_33, p2_34, p2_35,
+p3_1, p3_2, p3_3, p3_4, p3_5, p3_6, p3_7, p3_8, p3_9, p3_10, p3_11, p3_12, p3_13, p3_14, p3_15, p3_16, p3_17, p3_18, p3_19, p3_20, p3_21, p3_22, p3_23, p3_24, p3_25, p3_26, p3_27, p3_28, p3_29, p3_30, p3_31, p3_32, p3_33, p3_34, p3_35,
+NZ_REGISTRAT, p1_user, p2_user, p3_user, p1_date, p2_date, p3_date, dock, nz_visit
+from ukl u
+where patient_id = ? and nom_z = (select max(nom_z) from ukl
+where patient_id = u.PATIENT_ID  and nz_visit > 0)`)
+
+	row := tx.QueryRow(sqlQuery, id)
+	data := types.UKLData{}
+	row.Scan(
+		&data.Id,
+		&data.P1_1, &data.P1_2, &data.P1_3, &data.P1_4, &data.P1_5, &data.P1_6, &data.P1_7, &data.P1_8, &data.P1_9, &data.P1_10, &data.P1_11, &data.P1_12, &data.P1_13, &data.P1_14, &data.P1_15, &data.P1_16, &data.P1_17, &data.P1_18, &data.P1_19, &data.P1_20, &data.P1_21, &data.P1_22, &data.P1_23, &data.P1_24, &data.P1_25, &data.P1_26, &data.P1_27, &data.P1_28, &data.P1_29, &data.P1_30, &data.P1_31, &data.P1_32, &data.P1_33, &data.P1_34, &data.P1_35,
+		&data.P2_1, &data.P2_2, &data.P2_3, &data.P2_4, &data.P2_5, &data.P2_6, &data.P2_7, &data.P2_8, &data.P2_9, &data.P2_10, &data.P2_11, &data.P2_12, &data.P2_13, &data.P2_14, &data.P2_15, &data.P2_16, &data.P2_17, &data.P2_18, &data.P2_19, &data.P2_20, &data.P2_21, &data.P2_22, &data.P2_23, &data.P2_24, &data.P2_25, &data.P2_26, &data.P2_27, &data.P2_28, &data.P2_29, &data.P2_30, &data.P2_31, &data.P2_32, &data.P2_33, &data.P2_34, &data.P2_35,
+		&data.P3_1, &data.P3_2, &data.P3_3, &data.P3_4, &data.P3_5, &data.P3_6, &data.P3_7, &data.P3_8, &data.P3_9, &data.P3_10, &data.P3_11, &data.P3_12, &data.P3_13, &data.P3_14, &data.P3_15, &data.P3_16, &data.P3_17, &data.P3_18, &data.P3_19, &data.P3_20, &data.P3_21, &data.P3_22, &data.P3_23, &data.P3_24, &data.P3_25, &data.P3_26, &data.P3_27, &data.P3_28, &data.P3_29, &data.P3_30, &data.P3_31, &data.P3_32, &data.P3_33, &data.P3_34, &data.P3_35,
+		&data.RegistratId, &data.User1, &data.User2, &data.User3, &data.Date1, &data.Date2, &data.Date3, &data.Doctor, &data.VisitId,
+	)
+
+	return &data, nil
+}
+
+func (m *patientModel) NewUKLBySuicide1(data *types.NewUKL, visitId int, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`insert into ukl( PATIENT_ID,
+    P1_1, P1_2, P1_3,
+    P1_4, P1_5, P1_6,
+    P1_7, P1_8, P1_9,
+    P1_10, P1_11, P1_12,
+    P1_USER, P1_DATE, NZ_VISIT, dock, ins_dat)
+values( %v, 
+    %v, %v, %v,
+    %v, %v, %v,
+    %v, %v, %v,
+    %v, %v, %v,
+    %v, '%s', %v, %v, '%s')`,
+		data.PatientId,
+		data.Evaluations[0], data.Evaluations[1], data.Evaluations[2],
+		data.Evaluations[3], data.Evaluations[4], data.Evaluations[5],
+		data.Evaluations[6], data.Evaluations[7], data.Evaluations[8],
+		data.Evaluations[9], data.Evaluations[10], data.Evaluations[11],
+		data.UserId, data.Date, visitId, data.DoctorId, time.Now().Format(consts.TIME_FORMAT_DB),
+	)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) NewUKLBySuicide2(data *types.NewUKL, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`update ukl
+set P2_1 = %v,
+       P2_2 = %v, 
+       P2_3 = %v,
+       P2_4 = %v, 
+       P2_5 = %v, 
+       P2_6 = %v,
+       P2_7 = %v, 
+       P2_8 = %v, 
+       P2_9 = %v,
+       P2_10 = %v, 
+       P2_11 = %v, 
+       P2_12 = %v,
+       P2_USER = %v, 
+       P2_DATE = '%s'
+where nom_z = %v`,
+		data.Evaluations[0], data.Evaluations[1], data.Evaluations[2],
+		data.Evaluations[3], data.Evaluations[4], data.Evaluations[5],
+		data.Evaluations[6], data.Evaluations[7], data.Evaluations[8],
+		data.Evaluations[9], data.Evaluations[10], data.Evaluations[11],
+		data.UserId, data.Date, data.Id,
+	)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) NewUKLBySuicide3(data *types.NewUKL, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`update ukl
+set P3_1 = %v,
+       P3_2 = %v, 
+       P3_3 = %v,
+       P3_4 = %v, 
+       P3_5 = %v, 
+       P3_6 = %v,
+       P3_7 = %v, 
+       P3_8 = %v, 
+       P3_9 = %v,
+       P3_10 = %v, 
+       P3_11 = %v, 
+       P3_12 = %v,
+       P3_USER = %v, 
+       P3_DATE = '%s'
+where nom_z = %v`,
+		data.Evaluations[0], data.Evaluations[1], data.Evaluations[2],
+		data.Evaluations[3], data.Evaluations[4], data.Evaluations[5],
+		data.Evaluations[6], data.Evaluations[7], data.Evaluations[8],
+		data.Evaluations[9], data.Evaluations[10], data.Evaluations[11],
+		data.UserId, data.Date, data.Id,
+	)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) GetLastUKLByPsychotherapy(id int, tx *sql.Tx) (*types.UKLData, error) {
+	sqlQuery := fmt.Sprintf(`select nom_z,
+p1_1, p1_2, p1_3, p1_4, p1_5, p1_6, p1_7, p1_8, p1_9, p1_10, p1_11, p1_12, p1_13, p1_14, p1_15, p1_16, p1_17, p1_18, p1_19, p1_20, p1_21, p1_22, p1_23, p1_24, p1_25, p1_26, p1_27, p1_28, p1_29, p1_30, p1_31, p1_32, p1_33, p1_34, p1_35,
+p2_1, p2_2, p2_3, p2_4, p2_5, p2_6, p2_7, p2_8, p2_9, p2_10, p2_11, p2_12, p2_13, p2_14, p2_15, p2_16, p2_17, p2_18, p2_19, p2_20, p2_21, p2_22, p2_23, p2_24, p2_25, p2_26, p2_27, p2_28, p2_29, p2_30, p2_31, p2_32, p2_33, p2_34, p2_35,
+p3_1, p3_2, p3_3, p3_4, p3_5, p3_6, p3_7, p3_8, p3_9, p3_10, p3_11, p3_12, p3_13, p3_14, p3_15, p3_16, p3_17, p3_18, p3_19, p3_20, p3_21, p3_22, p3_23, p3_24, p3_25, p3_26, p3_27, p3_28, p3_29, p3_30, p3_31, p3_32, p3_33, p3_34, p3_35,
+NZ_REGISTRAT, p1_user, p2_user, p3_user, p1_date, p2_date, p3_date, dock, nz_visit
+from ukl u
+where patient_id = ? and nom_z = (select max(nom_z) from ukl
+where patient_id = u.PATIENT_ID  and nz_visit > 0)`)
+
+	row := tx.QueryRow(sqlQuery, id)
+	data := types.UKLData{}
+	row.Scan(
+		&data.Id,
+		&data.P1_1, &data.P1_2, &data.P1_3, &data.P1_4, &data.P1_5, &data.P1_6, &data.P1_7, &data.P1_8, &data.P1_9, &data.P1_10, &data.P1_11, &data.P1_12, &data.P1_13, &data.P1_14, &data.P1_15, &data.P1_16, &data.P1_17, &data.P1_18, &data.P1_19, &data.P1_20, &data.P1_21, &data.P1_22, &data.P1_23, &data.P1_24, &data.P1_25, &data.P1_26, &data.P1_27, &data.P1_28, &data.P1_29, &data.P1_30, &data.P1_31, &data.P1_32, &data.P1_33, &data.P1_34, &data.P1_35,
+		&data.P2_1, &data.P2_2, &data.P2_3, &data.P2_4, &data.P2_5, &data.P2_6, &data.P2_7, &data.P2_8, &data.P2_9, &data.P2_10, &data.P2_11, &data.P2_12, &data.P2_13, &data.P2_14, &data.P2_15, &data.P2_16, &data.P2_17, &data.P2_18, &data.P2_19, &data.P2_20, &data.P2_21, &data.P2_22, &data.P2_23, &data.P2_24, &data.P2_25, &data.P2_26, &data.P2_27, &data.P2_28, &data.P2_29, &data.P2_30, &data.P2_31, &data.P2_32, &data.P2_33, &data.P2_34, &data.P2_35,
+		&data.P3_1, &data.P3_2, &data.P3_3, &data.P3_4, &data.P3_5, &data.P3_6, &data.P3_7, &data.P3_8, &data.P3_9, &data.P3_10, &data.P3_11, &data.P3_12, &data.P3_13, &data.P3_14, &data.P3_15, &data.P3_16, &data.P3_17, &data.P3_18, &data.P3_19, &data.P3_20, &data.P3_21, &data.P3_22, &data.P3_23, &data.P3_24, &data.P3_25, &data.P3_26, &data.P3_27, &data.P3_28, &data.P3_29, &data.P3_30, &data.P3_31, &data.P3_32, &data.P3_33, &data.P3_34, &data.P3_35,
+		&data.RegistratId, &data.User1, &data.User2, &data.User3, &data.Date1, &data.Date2, &data.Date3, &data.Doctor, &data.VisitId,
+	)
+
+	return &data, nil
+}
+
+func (m *patientModel) NewUKLByPsychotherapy1(data *types.NewUKL, visitId int, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`insert into ukl( PATIENT_ID,
+    P1_1, P1_2, P1_3,
+    P1_4, P1_5, P1_6,
+    P1_7, P1_8, P1_9,
+    P1_10, P1_11, P1_12,
+    P1_13, P1_14, P1_15,
+    P1_16, 
+    P1_USER, P1_DATE, NZ_VISIT, dock, ins_dat)
+values( %v, 
+    %v, %v, %v,
+    %v, %v, %v,
+    %v, %v, %v,
+    %v, %v, %v,
+	%v, %v, %v,
+	%v,
+    %v, '%s', %v, %v, '%s')`,
+		data.PatientId,
+		data.Evaluations[0], data.Evaluations[1], data.Evaluations[2],
+		data.Evaluations[3], data.Evaluations[4], data.Evaluations[5],
+		data.Evaluations[6], data.Evaluations[7], data.Evaluations[8],
+		data.Evaluations[9], data.Evaluations[10], data.Evaluations[11],
+		data.Evaluations[12], data.Evaluations[13], data.Evaluations[14],
+		data.Evaluations[15],
+		data.UserId, data.Date, visitId, data.DoctorId, time.Now().Format(consts.TIME_FORMAT_DB),
+	)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) NewUKLByPsychotherapy2(data *types.NewUKL, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`update ukl
+set P2_1 = %v,
+P2_2 = %v, 
+P2_3 = %v,
+P2_4 = %v, 
+P2_5 = %v, 
+P2_6 = %v,
+P2_7 = %v, 
+P2_8 = %v, 
+P2_9 = %v,
+P2_10 = %v, 
+P2_11 = %v, 
+P2_12 = %v,
+P2_13 = %v, 
+P2_14 = %v,
+P2_15 = %v,
+P2_16 = %v, 
+P2_USER = %v, 
+P2_DATE = '%s'
+where nom_z = %v`,
+		data.Evaluations[0], data.Evaluations[1], data.Evaluations[2],
+		data.Evaluations[3], data.Evaluations[4], data.Evaluations[5],
+		data.Evaluations[6], data.Evaluations[7], data.Evaluations[8],
+		data.Evaluations[9], data.Evaluations[10], data.Evaluations[11],
+		data.Evaluations[12], data.Evaluations[13], data.Evaluations[14],
+		data.Evaluations[15],
+		data.UserId, data.Date, data.Id,
+	)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) NewUKLByPsychotherapy3(data *types.NewUKL, tx *sql.Tx) (sql.Result, error) {
+	sqlQuery := fmt.Sprintf(`update ukl
+set P3_1 = %v,
+P3_2 = %v, 
+P3_3 = %v,
+P3_4 = %v, 
+P3_5 = %v, 
+P3_6 = %v,
+P3_7 = %v, 
+P3_8 = %v, 
+P3_9 = %v,
+P3_10 = %v, 
+P3_11 = %v, 
+P3_12 = %v,
+P3_13 = %v, 
+P3_14 = %v,
+P3_15 = %v,
+P3_16 = %v, 
+P3_USER = %v, 
+P3_DATE = '%s'
+where nom_z = %v`,
+		data.Evaluations[0], data.Evaluations[1], data.Evaluations[2],
+		data.Evaluations[3], data.Evaluations[4], data.Evaluations[5],
+		data.Evaluations[6], data.Evaluations[7], data.Evaluations[8],
+		data.Evaluations[9], data.Evaluations[10], data.Evaluations[11],
+		data.Evaluations[12], data.Evaluations[13], data.Evaluations[14],
+		data.Evaluations[15],
+		data.UserId, data.Date, data.Id,
+	)
+	INFO.Println(sqlQuery)
+	return tx.Exec(sqlQuery)
+}
+
+func (m *patientModel) GetListUKLByPatient(id int, isType int, tx *sql.Tx) (*[]types.UKLData, error) {
+	sqlQuery := fmt.Sprintf(`select nom_z,
+p1_1, p1_2, p1_3, p1_4, p1_5, p1_6, p1_7, p1_8, p1_9, p1_10, p1_11, p1_12, p1_13, p1_14, p1_15, p1_16, p1_17, p1_18, p1_19, p1_20, p1_21, p1_22, p1_23, p1_24, p1_25, p1_26, p1_27, p1_28, p1_29, p1_30, p1_31, p1_32, p1_33, p1_34, p1_35,
+p2_1, p2_2, p2_3, p2_4, p2_5, p2_6, p2_7, p2_8, p2_9, p2_10, p2_11, p2_12, p2_13, p2_14, p2_15, p2_16, p2_17, p2_18, p2_19, p2_20, p2_21, p2_22, p2_23, p2_24, p2_25, p2_26, p2_27, p2_28, p2_29, p2_30, p2_31, p2_32, p2_33, p2_34, p2_35,
+p3_1, p3_2, p3_3, p3_4, p3_5, p3_6, p3_7, p3_8, p3_9, p3_10, p3_11, p3_12, p3_13, p3_14, p3_15, p3_16, p3_17, p3_18, p3_19, p3_20, p3_21, p3_22, p3_23, p3_24, p3_25, p3_26, p3_27, p3_28, p3_29, p3_30, p3_31, p3_32, p3_33, p3_34, p3_35,
+NZ_REGISTRAT, p1_user, p2_user, p3_user, p1_date, p2_date, p3_date, dock, nz_visit
+from ukl where patient_id = ?`)
+	if isType == consts.TYPE_UKL_VISIT {
+		sqlQuery += " and nz_visit > 0"
+	} else {
+		sqlQuery += " and nz_registrat > 0"
+	}
+	INFO.Println(sqlQuery)
+	rows, err := tx.Query(sqlQuery, id)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+	list := make([]types.UKLData, 0)
+	for rows.Next() {
+		data := types.UKLData{}
+		rows.Scan(
+			&data.Id,
+			&data.P1_1, &data.P1_2, &data.P1_3, &data.P1_4, &data.P1_5, &data.P1_6, &data.P1_7, &data.P1_8, &data.P1_9, &data.P1_10, &data.P1_11, &data.P1_12, &data.P1_13, &data.P1_14, &data.P1_15, &data.P1_16, &data.P1_17, &data.P1_18, &data.P1_19, &data.P1_20, &data.P1_21, &data.P1_22, &data.P1_23, &data.P1_24, &data.P1_25, &data.P1_26, &data.P1_27, &data.P1_28, &data.P1_29, &data.P1_30, &data.P1_31, &data.P1_32, &data.P1_33, &data.P1_34, &data.P1_35,
+			&data.P2_1, &data.P2_2, &data.P2_3, &data.P2_4, &data.P2_5, &data.P2_6, &data.P2_7, &data.P2_8, &data.P2_9, &data.P2_10, &data.P2_11, &data.P2_12, &data.P2_13, &data.P2_14, &data.P2_15, &data.P2_16, &data.P2_17, &data.P2_18, &data.P2_19, &data.P2_20, &data.P2_21, &data.P2_22, &data.P2_23, &data.P2_24, &data.P2_25, &data.P2_26, &data.P2_27, &data.P2_28, &data.P2_29, &data.P2_30, &data.P2_31, &data.P2_32, &data.P2_33, &data.P2_34, &data.P2_35,
+			&data.P3_1, &data.P3_2, &data.P3_3, &data.P3_4, &data.P3_5, &data.P3_6, &data.P3_7, &data.P3_8, &data.P3_9, &data.P3_10, &data.P3_11, &data.P3_12, &data.P3_13, &data.P3_14, &data.P3_15, &data.P3_16, &data.P3_17, &data.P3_18, &data.P3_19, &data.P3_20, &data.P3_21, &data.P3_22, &data.P3_23, &data.P3_24, &data.P3_25, &data.P3_26, &data.P3_27, &data.P3_28, &data.P3_29, &data.P3_30, &data.P3_31, &data.P3_32, &data.P3_33, &data.P3_34, &data.P3_35,
+			&data.RegistratId, &data.User1, &data.User2, &data.User3, &data.Date1, &data.Date2, &data.Date3, &data.Doctor, &data.VisitId,
+		)
+		list = append(list, data)
+	}
+
+	return &list, nil
 }
