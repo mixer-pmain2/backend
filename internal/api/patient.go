@@ -1191,3 +1191,180 @@ func (p *patientApi) GetListUKLByPatient(w http.ResponseWriter, r *http.Request)
 	w.Write(resMarshal)
 	return nil
 }
+
+func (p *patientApi) GetForcedByPatient(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.GetForcedByPatient(id, isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) GetForcedLastByPatient(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.GetForcedLastByPatient(id, isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) GetViewed(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	params := mux.Vars(r)
+	id, _ := strconv.Atoi(params["id"])
+
+	number, _ := strconv.Atoi(r.URL.Query().Get("number"))
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.GetViewed(id, number, isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) GetForced(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.GetForced(id, isCache)
+	if err != nil {
+		ERROR.Println(err)
+		return err
+	}
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) PostForcedByPatient(w http.ResponseWriter, r *http.Request) error {
+	var forced types.Forced
+	err := json.NewDecoder(r.Body).Decode(&forced)
+	if err != nil {
+		return err
+	}
+	params := mux.Vars(r)
+	id, _ := strconv.Atoi(params["id"])
+	forced.PatientId = id
+
+	c := controller.Init()
+	val, err := c.Patient.PostForcedByPatient(&forced)
+	if err != nil {
+		return err
+	}
+
+	success(val, w)
+	return nil
+}
+
+func (p *patientApi) PostNewForcedByPatient(w http.ResponseWriter, r *http.Request) error {
+	var forced types.Forced
+	err := json.NewDecoder(r.Body).Decode(&forced)
+	if err != nil {
+		return err
+	}
+	params := mux.Vars(r)
+	id, _ := strconv.Atoi(params["id"])
+	forced.PatientId = id
+
+	c := controller.Init()
+	val, err := c.Patient.PostNewForcedByPatient(&forced)
+	if err != nil {
+		return err
+	}
+
+	success(val, w)
+	return nil
+}
+
+func (p *patientApi) EndForcedByPatient(w http.ResponseWriter, r *http.Request) error {
+	var forced types.Forced
+	err := json.NewDecoder(r.Body).Decode(&forced)
+	if err != nil {
+		return err
+	}
+	params := mux.Vars(r)
+	id, _ := strconv.Atoi(params["id"])
+	forced.PatientId = id
+
+	c := controller.Init()
+	val, err := c.Patient.EndForcedByPatient(&forced)
+	if err != nil {
+		return err
+	}
+
+	success(val, w)
+	return nil
+}
+
+func (p *patientApi) GetNumForcedByPatient(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	params := mux.Vars(r)
+	id, _ := strconv.Atoi(params["id"])
+
+	c := controller.Init()
+	number, err := c.Patient.GetNumForcedByPatient(id)
+	if err != nil {
+		ERROR.Println(err)
+		return err
+	}
+	resMarshal, _ := json.Marshal(struct {
+		Number int `json:"number"`
+	}{Number: number})
+	w.Write(resMarshal)
+	return nil
+}

@@ -1119,3 +1119,241 @@ from ukl where patient_id = ?`)
 
 	return &list, nil
 }
+
+func (m *patientModel) GetForcedByPatient(id int, tx *sql.Tx) (*[]types.ForcedM, error) {
+	sqlQuery := fmt.Sprintf(`select nz, date_b, date_e, nabl, meh, stat, num_p from load_prinudka(%v)`, id)
+
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
+	data := make([]types.ForcedM, 0)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var r = types.ForcedM{}
+		dateStart := sql.NullString{}
+		dateEnd := sql.NullString{}
+		rows.Scan(&r.Id, &dateStart, &dateEnd, &r.Watch, &r.Mechanism, &r.State, &r.Number)
+		r.DateEnd = dateEnd.String
+		r.DateStart = dateStart.String
+		r.Watch, _ = utils.ToUTF8(strings.Trim(r.Watch, " "))
+		r.Mechanism, _ = utils.ToUTF8(strings.Trim(r.Mechanism, " "))
+		r.State, _ = utils.ToUTF8(strings.Trim(r.State, " "))
+		data = append(data, r)
+	}
+
+	return &data, nil
+}
+
+func (m *patientModel) GetForcedNumberByPatient(patientId int, number int, tx *sql.Tx) (*types.ForcedM, error) {
+	sqlQuery := fmt.Sprintf(`select nz, date_b, date_e, nabl, meh, stat, num_p from load_prinudka(%v) where num_p = %v`, patientId, number)
+
+	row := tx.QueryRow(sqlQuery)
+	var r = types.ForcedM{}
+	dateStart := sql.NullString{}
+	dateEnd := sql.NullString{}
+	row.Scan(&r.Id, &dateStart, &dateEnd, &r.Watch, &r.Mechanism, &r.State, &r.Number)
+	r.DateEnd = dateEnd.String
+	r.DateStart = dateStart.String
+	r.Watch, _ = utils.ToUTF8(strings.Trim(r.Watch, " "))
+	r.Mechanism, _ = utils.ToUTF8(strings.Trim(r.Mechanism, " "))
+	r.State, _ = utils.ToUTF8(strings.Trim(r.State, " "))
+
+	return &r, nil
+}
+
+func (m *patientModel) GetViewed(id int, number int, tx *sql.Tx) (*[]types.ViewedM, error) {
+	sqlQuery := fmt.Sprintf(`select 
+nz, osm_date, fio, fio1,
+na_me, n_akt, akt_date, na_me1,
+op_date, pol_date, vid_zapis, exit_date, sud 
+from load_prin_osmotr(%v, %v)
+order by osm_date desc`, id, number)
+
+	INFO.Println(sqlQuery)
+
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
+	data := make([]types.ViewedM, 0)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var r = types.ViewedM{}
+		dateEnd := sql.NullString{}
+		doctorName1 := sql.NullString{}
+		doctorName2 := sql.NullString{}
+		conclusion := sql.NullString{}
+		courtDate := sql.NullString{}
+		courtConclusionDate := sql.NullString{}
+		courtName := sql.NullString{}
+		err = rows.Scan(&r.Id, &r.ViewDate, &doctorName1, &doctorName2,
+			&conclusion, &r.ActNumber, &r.ActDate, &r.View,
+			&courtDate, &courtConclusionDate, &r.Type, &dateEnd, &courtName)
+		if err != nil {
+			ERROR.Println(err)
+			return nil, err
+		}
+		r.DateEnd = dateEnd.String
+		r.DoctorName1, _ = utils.ToUTF8(doctorName1.String)
+		r.DoctorName2, _ = utils.ToUTF8(doctorName2.String)
+		r.Conclusion, _ = utils.ToUTF8(conclusion.String)
+		r.CourtDate = courtDate.String
+		r.CourtConclusionDate = courtConclusionDate.String
+		r.CourtName, _ = utils.ToUTF8(courtName.String)
+		r.View, _ = utils.ToUTF8(r.View)
+		//r.DateStart = dateStart.String
+		//r.Watch, _ = utils.ToUTF8(strings.Trim(r.Watch, " "))
+		//r.Mechanism, _ = utils.ToUTF8(strings.Trim(r.Mechanism, " "))
+		//r.State, _ = utils.ToUTF8(strings.Trim(r.State, " "))
+		data = append(data, r)
+	}
+
+	return &data, nil
+}
+
+func (m *patientModel) GetForced(id int, tx *sql.Tx) (*types.Forced, error) {
+	sqlQuery := fmt.Sprintf(`select nom_z, PATIENT_ID, num_pr, 
+op_date, pol_date, sud,
+st, T_NABL, P_PRIN,
+TRUD, MEH, dock1,
+dock2, osm_date, zakl,
+n_akt, akt_date, exit_date,
+VID_ZAPIS
+from prinud_m
+where nom_z = %v`, id)
+	INFO.Println(sqlQuery)
+	row := tx.QueryRow(sqlQuery)
+	var r = types.Forced{}
+	actDate := sql.NullString{}
+	err := row.Scan(&r.Id, &r.PatientId, &r.Number,
+		&r.CourtDate, &r.CourtConclusionDate, &r.CourtId,
+		&r.TypeCrimeId, &r.ViewId, &r.ForcedP,
+		&r.Sick, &r.Mechanism, &r.DoctorId1,
+		&r.DoctorId2, &r.DateView, &r.ConclusionId,
+		&r.ActNumber, &actDate, &r.DateEnd,
+		&r.TypeId,
+	)
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+	r.ActDate = actDate.String
+
+	return &r, nil
+}
+
+func (m *patientModel) GetForcedLastByPatient(patientId int, tx *sql.Tx) (*types.Forced, error) {
+	sqlQuery := fmt.Sprintf(`select nom_z, PATIENT_ID, num_pr, 
+op_date, pol_date, sud,
+st, T_NABL, P_PRIN,
+TRUD, MEH, dock1,
+dock2, osm_date, zakl,
+n_akt, akt_date, exit_date,
+VID_ZAPIS
+from prinud_m
+where patient_id = %v
+and osm_date = (select max(osm_date) from prinud_m
+where patient_id = %v)`, patientId, patientId)
+	INFO.Println(sqlQuery)
+	row := tx.QueryRow(sqlQuery)
+	var r = types.Forced{}
+	actDate := sql.NullString{}
+	err := row.Scan(&r.Id, &r.PatientId, &r.Number,
+		&r.CourtDate, &r.CourtConclusionDate, &r.CourtId,
+		&r.TypeCrimeId, &r.ViewId, &r.ForcedP,
+		&r.Sick, &r.Mechanism, &r.DoctorId1,
+		&r.DoctorId2, &r.DateView, &r.ConclusionId,
+		&r.ActNumber, &actDate, &r.DateEnd,
+		&r.TypeId,
+	)
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+	r.ActDate = actDate.String
+
+	return &r, nil
+}
+
+func (m *patientModel) PostForcedByPatient(forced *types.Forced, tx *sql.Tx) (sql.Result, error) {
+	sql := fmt.Sprintf(`insert into prinud_m(
+patient_id, num_pr, op_date,
+pol_date, sud, st,
+t_nabl, P_PRIN, trud,
+MEH, DOCK1, DOCK2,
+OSM_DATE, ZAKL, N_AKT, 
+AKT_DATE, EXIT_DATE, VID_ZAPIS,
+ins_who, ins_date, UPD_WHO, UPD_DATE)
+values(%v, %v, '%s',
+'%s', %v, %v, 
+%v, %v, %v,
+%v, %v, %v,
+'%s', %v, %v,
+'%s', '%s', %v,
+%v, '%s', %v, '%s')`,
+		forced.PatientId, forced.Number, forced.CourtDate,
+		forced.CourtConclusionDate, forced.CourtId, forced.TypeCrimeId,
+		forced.ViewId, forced.ForcedP, forced.Sick,
+		forced.Mechanism, forced.DoctorId1, forced.DoctorId2,
+		forced.DateView, forced.ConclusionId, forced.ActNumber,
+		forced.ActDate, forced.DateEnd, forced.TypeId,
+		forced.UserId, time.Now().Format(consts.TIME_FORMAT_DB), forced.UserId, time.Now().Format(consts.TIME_FORMAT_DB),
+	)
+	INFO.Println(sql)
+	return tx.Exec(sql)
+}
+
+func (m *patientModel) UpdForcedByPatient(forced *types.Forced, tx *sql.Tx) (sql.Result, error) {
+	sql := fmt.Sprintf(`update prinud_m 
+set num_pr = %v,
+op_date = '%s',
+pol_date = '%s',
+sud = %v,
+st = %v,
+t_nabl = %v,
+P_PRIN = %v,
+trud = %v,
+MEH = %v,
+DOCK1 = %v,
+DOCK2 = %v,
+OSM_DATE = '%s',
+ZAKL = %v,
+N_AKT = %v, 
+AKT_DATE = '%s',
+EXIT_DATE = '%s',
+VID_ZAPIS = %v,
+UPD_WHO = %v,
+UPD_DATE = '%s'
+where nom_z = %v`,
+		forced.Number, forced.CourtDate,
+		forced.CourtConclusionDate, forced.CourtId, forced.TypeCrimeId,
+		forced.ViewId, forced.ForcedP, forced.Sick,
+		forced.Mechanism, forced.DoctorId1, forced.DoctorId2,
+		forced.DateView, forced.ConclusionId, forced.ActNumber,
+		forced.ActDate, forced.DateEnd, forced.TypeId,
+		forced.UserId, time.Now().Format(consts.TIME_FORMAT_DB), forced.Id,
+	)
+	INFO.Println(sql)
+	return tx.Exec(sql)
+}
+
+func (m *patientModel) DeleteForcedByViewDate(forced *types.Forced, tx *sql.Tx) (sql.Result, error) {
+	sql := fmt.Sprintf(`delete from prinud_m where OSM_DATE = '%s' and patient_id = %v`,
+		forced.DateView, forced.PatientId,
+	)
+	INFO.Println(sql)
+	return tx.Exec(sql)
+}
+
+func (m *patientModel) GetNumForcedByPatient(patientId int, tx *sql.Tx) (int, error) {
+	sql := fmt.Sprintf(`select num from load_num_pr(%v)`, patientId)
+	INFO.Println(sql)
+	row := tx.QueryRow(sql)
+	var num int
+	err := row.Scan(&num)
+	if err != nil {
+		return 0, nil
+	}
+	return num, nil
+}

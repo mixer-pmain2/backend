@@ -63,6 +63,22 @@ func (s *sprApi) GetSprVisit(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *sprApi) GetSprVisitByCode(w http.ResponseWriter, r *http.Request) error {
+	c := controller.Init()
+	code, _ := strconv.Atoi(r.URL.Query().Get("code"))
+	data, err := c.Spr.GetSprVisitByCode(code)
+	if err != nil {
+		return err
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, string(res))
+	return nil
+}
+
 func (s *sprApi) GetSprDiags(w http.ResponseWriter, r *http.Request) error {
 	query := r.URL.Query()
 	diag := query.Get("diag")

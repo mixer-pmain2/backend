@@ -17,19 +17,9 @@ var (
 	appCache = cache.CreateCache(time.Minute, time.Minute)
 )
 
-type auth struct {
-	username string
-	password string
-}
-
 func CheckAuth(h http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		payed := true
-		pTime, _ := time.Parse("02.01.2006", "12.09.2022")
-		if time.Now().Sub(pTime) > 0 {
-			payed = false
-		}
 
 		//username, password, ok := r.BasicAuth()
 		reqToken := r.Header.Get("Authorization")
@@ -37,26 +27,9 @@ func CheckAuth(h http.Handler) http.Handler {
 		reqToken = splitToken[1]
 		jwtT := jwt.JWT(config.AppConfig.SecretKey)
 
-		if jwtT.IsValid(reqToken) && payed {
-			//isAuth, ok := appCache.Get("token_" + reqToken)
-			//if !ok {
-			//c := controller.Init()
-			//var err error
-			//user, _ := utils.ToWin1251(username)
-			//pass, _ := utils.ToWin1251(password) // utils.ToASCII(password)
-			//isAuth, err = c.User.IsAuth(user, pass)
-			//if err != nil {
-			//	INFO.Println("BasicAuth, ok=", isAuth, " err=", err)
-			//	http.Error(w, err.Error(), http.StatusUnauthorized)
-			//	ERROR.Println(err.Error())
-			//	return
-			//}
-			//appCache.Set("token_"+reqToken, isAuth, time.Second*10)
-			//}
-			//if isAuth != nil && isAuth.(bool) {
+		if jwtT.IsValid(reqToken) {
 			h.ServeHTTP(w, r)
 			return
-			//}
 		}
 
 		w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token, charset="UTF-8"`)

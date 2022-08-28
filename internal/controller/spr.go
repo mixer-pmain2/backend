@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"pmain2/internal/models"
 	"pmain2/internal/types"
 	"pmain2/pkg/cache"
@@ -88,6 +89,35 @@ func (s *spr) GetSprVisit() (*map[int]string, error) {
 	}
 	defer tx.Rollback()
 	data, err := model.GetSprVisit(tx)
+	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+
+	cache.AppCache.Set(cacheName, data, time.Hour)
+	return data, nil
+}
+
+func (s *spr) GetSprVisitByCode(code int) (*[]types.SprVisitN, error) {
+	cacheName := fmt.Sprintf("GetSprVisitByCode_%v", code)
+
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok {
+		res := item.(*[]types.SprVisitN)
+		return res, nil
+	}
+
+	model := models.Model.Spr
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetSprVisitByCode(code, tx)
 	if err != nil {
 		return nil, err
 	}

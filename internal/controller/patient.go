@@ -1640,3 +1640,388 @@ func (p *patient) GetListUKLByPatient(id int, isType int, isCache bool) (*[]type
 	cache.AppCache.Set(cacheName, data, 0)
 	return data, nil
 }
+
+func (p *patient) GetForcedByPatient(id int, isCache bool) (*[]types.ForcedM, error) {
+	cacheName := fmt.Sprintf("GetForcedByPatient%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]types.ForcedM), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetForcedByPatient(id, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) GetForcedLastByPatient(patientId int, isCache bool) (*types.Forced, error) {
+	cacheName := fmt.Sprintf("GetForcedLastByPatient%v", patientId)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*types.Forced), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetForcedLastByPatient(patientId, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) GetViewed(id int, number int, isCache bool) (*[]types.ViewedM, error) {
+	cacheName := fmt.Sprintf("GetViewed%v_%v", id, number)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*[]types.ViewedM), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetViewed(id, number, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) GetForced(id int, isCache bool) (*types.Forced, error) {
+	cacheName := fmt.Sprintf("GetForced%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*types.Forced), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetForced(id, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) PostForcedByPatient(forced *types.Forced) (int, error) {
+	dateNull := "1899-12-30"
+
+	if forced.TypeId != 4 {
+		if forced.DoctorId1 == 0 || forced.DoctorId2 == 0 {
+			return 850, nil
+		}
+		if forced.ConclusionId == 0 {
+			return 851, nil
+		}
+	}
+	//if forced.CourtDate == "" {
+	//	return 852, nil
+	//}
+	//if forced.CourtConclusionDate == "" {
+	//	return 853, nil
+	//}
+
+	if forced.TypeId == 4 {
+		forced.DoctorId1 = 0
+		forced.DoctorId2 = 0
+	}
+
+	forcedLast, err := p.GetForcedLastByPatient(forced.PatientId, false)
+	if forced.ConclusionId == 7 {
+		forced.ConclusionId = forcedLast.ConclusionId
+	}
+
+	forced.DateEnd = ""
+	if forced.ViewId == 5 || forced.ViewId == 6 {
+		forced.DateEnd = forced.CourtDate
+	}
+
+	if forced.ViewId == 7 {
+		forced.ViewId = forcedLast.ConclusionId
+	}
+
+	if forced.TypeId != 4 {
+		if forced.ActNumber != 0 {
+			forced.TypeId = 2
+		} else {
+			forced.TypeId = 3
+		}
+	}
+
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 20, err
+	}
+
+	defer tx.Rollback()
+	model = models.Model.Patient
+
+	currentForced, _ := model.GetForcedNumberByPatient(forced.PatientId, forced.Number, tx)
+	if forced.CourtConclusionDate == "" {
+		forced.CourtConclusionDate = dateNull
+	}
+	if forced.CourtDate == "" {
+		forced.CourtDate = dateNull
+	}
+	if forced.DateEnd == "" {
+		forced.DateEnd = dateNull
+	}
+	if forced.DateView == "" {
+		forced.DateView = dateNull
+	}
+	if forced.DateEnd == "" {
+		forced.DateEnd = dateNull
+	}
+	if forced.ActDate == "" {
+		forced.ActDate = dateNull
+	}
+	if dateView, _ := time.Parse(consts.TIME_FORMAT_DB, forced.DateView); true {
+		actDate, _ := time.Parse(consts.TIME_FORMAT_DB, forced.ActDate)
+
+		if dateView.Sub(actDate) < 0 {
+
+		}
+	}
+
+	dateEnd, _ := time.Parse(time.RFC3339, currentForced.DateEnd)
+	dNull, _ := time.Parse(consts.TIME_FORMAT_DB, dateNull)
+	if dateEnd.Format(consts.TIME_FORMAT_DB) != dNull.Format(consts.TIME_FORMAT_DB) && currentForced.DateEnd != "" {
+		return 855, nil
+	}
+	if forced.Number != forcedLast.Number {
+		return 855, nil
+	}
+
+	if forced.Number == 0 {
+		//forced.Number, err = model.GetNumForcedByPatient(forced.PatientId, tx)
+		forced.Number = forcedLast.Number
+	}
+	if err != nil {
+		return 22, err
+	}
+	if forced.Id > 0 {
+		forcedCur, _ := model.GetForced(forced.Id, tx)
+		if forcedCur.Id > 0 {
+			//forced.Number = forcedCur.Number
+			//_, err = model.DeleteForcedByViewDate(forced, tx)
+			//if err != nil {
+			//	return 22, err
+			//}
+			//_, err = model.PostForcedByPatient(forced, tx)
+			_, err = model.UpdForcedByPatient(forced, tx)
+			if err != nil {
+				return 22, err
+			}
+		}
+	}
+	if forced.Id == 0 {
+		_, err = model.PostForcedByPatient(forced, tx)
+		if err != nil {
+			return 22, err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
+	}
+
+	return 0, nil
+}
+
+func (p *patient) PostNewForcedByPatient(forced *types.Forced) (int, error) {
+	dateNull := "1899-12-30"
+
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 20, err
+	}
+
+	defer tx.Rollback()
+
+	forced.Number, err = model.GetNumForcedByPatient(forced.PatientId, tx)
+	if err != nil {
+		return 854, nil
+	}
+
+	if forced.CourtConclusionDate == "" {
+		forced.CourtConclusionDate = dateNull
+	}
+	if forced.CourtDate == "" {
+		forced.CourtDate = dateNull
+	}
+	if forced.DateEnd == "" {
+		forced.DateEnd = dateNull
+	}
+	if forced.DateView == "" {
+		forced.DateView = dateNull
+	}
+	if forced.DateEnd == "" {
+		forced.DateEnd = dateNull
+	}
+	if forced.ActDate == "" {
+		forced.ActDate = dateNull
+	}
+	if dateView, _ := time.Parse(consts.TIME_FORMAT_DB, forced.DateView); true {
+		actDate, _ := time.Parse(consts.TIME_FORMAT_DB, forced.ActDate)
+
+		if dateView.Sub(actDate) < 0 {
+
+		}
+	}
+
+	if err != nil {
+		return 22, err
+	}
+	_, err = model.PostForcedByPatient(forced, tx)
+	if err != nil {
+		return 22, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
+	}
+
+	return 0, nil
+}
+
+func (p *patient) EndForcedByPatient(forced *types.Forced) (int, error) {
+	dateNull := "1899-12-30"
+
+	forcedLast, err := p.GetForcedLastByPatient(forced.PatientId, false)
+	forced.Number = forcedLast.Number
+	if forced.Number == 0 {
+		return 854, nil
+	}
+	if forced.DateEnd == "" {
+		return 856, nil
+	}
+
+	if forced.CourtDate == "" {
+		return 857, nil
+	}
+	forced.CourtConclusionDate = forced.CourtDate
+	forced.TypeId = 4
+
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 20, err
+	}
+
+	defer tx.Rollback()
+
+	//forced.Number, err = model.GetNumForcedByPatient(forced.PatientId, tx)
+	if err != nil {
+		return 854, nil
+	}
+
+	if forced.CourtConclusionDate == "" {
+		forced.CourtConclusionDate = dateNull
+	}
+	if forced.CourtDate == "" {
+		forced.CourtDate = dateNull
+	}
+	if forced.DateEnd == "" {
+		forced.DateEnd = dateNull
+	}
+	if forced.DateView == "" {
+		forced.DateView = dateNull
+	}
+	if forced.DateEnd == "" {
+		forced.DateEnd = dateNull
+	}
+	if forced.ActDate == "" {
+		forced.ActDate = dateNull
+	}
+	if dateView, _ := time.Parse(consts.TIME_FORMAT_DB, forced.DateView); true {
+		actDate, _ := time.Parse(consts.TIME_FORMAT_DB, forced.ActDate)
+
+		if dateView.Sub(actDate) < 0 {
+
+		}
+	}
+
+	if err != nil {
+		return 22, err
+	}
+	_, err = model.PostForcedByPatient(forced, tx)
+	if err != nil {
+		return 22, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 22, err
+	}
+
+	return 0, nil
+}
+
+func (p *patient) GetNumForcedByPatient(id int) (int, error) {
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetNumForcedByPatient(id, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return 0, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+	return data, nil
+}

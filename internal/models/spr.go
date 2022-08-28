@@ -117,6 +117,32 @@ WHERE KOD1 = 3 AND MASKA1 > 0`)
 
 }
 
+func (m *SprModel) GetSprVisitByCode(code int, tx *sql.Tx) (*[]types.SprVisitN, error) {
+	sql := fmt.Sprintf(`SELECT kod2, NA_ME 
+FROM SPR_VISIT_N svn 
+WHERE KOD1 = %v AND kod2 > 0`, code)
+	INFO.Println(sql)
+	rows, err := tx.Query(sql)
+	defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	var data = make([]types.SprVisitN, 0)
+	for rows.Next() {
+		row := types.SprVisitN{}
+		err = rows.Scan(&row.Code, &row.Name)
+		if err != nil {
+			return nil, err
+		}
+		row.Name, err = utils.ToUTF8(strings.Trim(row.Name, " "))
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, row)
+	}
+	return &data, nil
+}
+
 type DiagM struct {
 	Head         string `json:"head"`
 	Diag         string `json:"diag"`

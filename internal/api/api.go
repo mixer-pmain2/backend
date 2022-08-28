@@ -89,3 +89,15 @@ func resSuccess(val int) []byte {
 	resMarshal, _ := json.Marshal(res)
 	return resMarshal
 }
+
+func success(val int, w http.ResponseWriter) {
+	res := types.HttpResponse{Success: true, Error: 0}
+
+	if val > 0 {
+		res.Success = false
+		res.Error = val
+		res.Message = consts.ArrErrors[val]
+	}
+	resMarshal, _ := json.Marshal(res)
+	w.Write(resMarshal)
+}

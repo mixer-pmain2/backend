@@ -243,3 +243,57 @@ type FindDoctorLead struct {
 	Month int `json:"month"`
 	Year  int `json:"year"`
 }
+
+type ForcedM struct {
+	Id        int    `json:"id"`
+	DateStart string `json:"dateStart"`
+	DateEnd   string `json:"dateEnd"`
+	Watch     string `json:"watch"`
+	Mechanism string `json:"mechanism"`
+	State     string `json:"state"`
+	Number    int    `json:"number"`
+}
+
+type Forced struct {
+	Id                  int    `json:"id"`
+	PatientId           int    `json:"patientId"`
+	Number              int    `json:"number"`
+	CourtDate           string `json:"courtDate"`
+	CourtConclusionDate string `json:"courtConclusionDate"`
+	CourtId             int    `json:"courtId"`
+	TypeCrimeId         int    `json:"typeCrimeId"`
+	ViewId              int    `json:"viewId"`
+	ForcedP             int    `json:"forcedP"`
+	Sick                int    `json:"sick"`
+	Mechanism           int    `json:"mechanism"`
+	DoctorId1           int    `json:"doctorId1"`
+	DoctorId2           int    `json:"doctorId2"`
+	DateView            string `json:"dateView"`
+	ConclusionId        int    `json:"conclusionId"`
+	ActNumber           int    `json:"actNumber"`
+	ActDate             string `json:"actDate"`
+	DateEnd             string `json:"dateEnd"`
+	TypeId              int    `json:"typeId"`
+	UserId              int    `json:"userId"`
+}
+
+type ViewedM struct {
+	Id                  int    `json:"id"`
+	ViewDate            string `json:"viewDate"`
+	DoctorName1         string `json:"doctorName1"`
+	DoctorName2         string `json:"doctorName2"`
+	Conclusion          string `json:"conclusion"`
+	ActNumber           int    `json:"actNumber"`
+	ActDate             string `json:"actDate"`
+	View                string `json:"view"`
+	CourtDate           string `json:"courtDate"`
+	CourtConclusionDate string `json:"courtConclusionDate"`
+	Type                string `json:"type"`
+	DateEnd             string `json:"dateEnd"`
+	CourtName           string `json:"courtName"`
+}
+
+type SprVisitN struct {
+	Code int    `json:"code"`
+	Name string `json:"name"`
+}
