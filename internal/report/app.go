@@ -19,6 +19,7 @@ func createReport() error {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println("panic occurred:", err)
+			ERROR.Println("panic occurred:", err)
 		}
 	}()
 	//INFO.Print("Check report job")
@@ -97,6 +98,8 @@ func createReport() error {
 			buf, err = job.TakenForADNAccordingToClinical(row, tx)
 		case reportType.ProtocolUKL:
 			buf, err = job.ProtocolUKL(row, tx)
+		case reportType.Form39General:
+			buf, err = job.Form39General(row, tx)
 
 		default:
 			err, tx = CreateTx()

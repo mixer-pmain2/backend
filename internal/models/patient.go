@@ -780,7 +780,7 @@ values( %v,
 		data.Evaluations[9], data.Evaluations[10], data.Evaluations[11],
 		data.Evaluations[12], data.Evaluations[13], data.Evaluations[14],
 		data.Evaluations[15],
-		data.UserId, data.Date, regId, data.DoctorId, time.Now().Format(consts.TIME_FORMAT_DB),
+		data.UserId, data.Date, regId, data.DoctorId, time.Now().Format(consts.DATE_FORMAT_DB),
 	)
 	INFO.Println(sqlQuery)
 	return tx.Exec(sqlQuery)
@@ -908,7 +908,7 @@ values( %v,
 		data.Evaluations[3], data.Evaluations[4], data.Evaluations[5],
 		data.Evaluations[6], data.Evaluations[7], data.Evaluations[8],
 		data.Evaluations[9], data.Evaluations[10], data.Evaluations[11],
-		data.UserId, data.Date, visitId, data.DoctorId, time.Now().Format(consts.TIME_FORMAT_DB),
+		data.UserId, data.Date, visitId, data.DoctorId, time.Now().Format(consts.DATE_FORMAT_DB),
 	)
 	INFO.Println(sqlQuery)
 	return tx.Exec(sqlQuery)
@@ -1015,7 +1015,7 @@ values( %v,
 		data.Evaluations[9], data.Evaluations[10], data.Evaluations[11],
 		data.Evaluations[12], data.Evaluations[13], data.Evaluations[14],
 		data.Evaluations[15],
-		data.UserId, data.Date, visitId, data.DoctorId, time.Now().Format(consts.TIME_FORMAT_DB),
+		data.UserId, data.Date, visitId, data.DoctorId, time.Now().Format(consts.DATE_FORMAT_DB),
 	)
 	INFO.Println(sqlQuery)
 	return tx.Exec(sqlQuery)
@@ -1298,7 +1298,7 @@ values(%v, %v, '%s',
 		forced.Mechanism, forced.DoctorId1, forced.DoctorId2,
 		forced.DateView, forced.ConclusionId, forced.ActNumber,
 		forced.ActDate, forced.DateEnd, forced.TypeId,
-		forced.UserId, time.Now().Format(consts.TIME_FORMAT_DB), forced.UserId, time.Now().Format(consts.TIME_FORMAT_DB),
+		forced.UserId, time.Now().Format(consts.DATE_FORMAT_DB), forced.UserId, time.Now().Format(consts.DATE_FORMAT_DB),
 	)
 	INFO.Println(sql)
 	return tx.Exec(sql)
@@ -1332,7 +1332,7 @@ where nom_z = %v`,
 		forced.Mechanism, forced.DoctorId1, forced.DoctorId2,
 		forced.DateView, forced.ConclusionId, forced.ActNumber,
 		forced.ActDate, forced.DateEnd, forced.TypeId,
-		forced.UserId, time.Now().Format(consts.TIME_FORMAT_DB), forced.Id,
+		forced.UserId, time.Now().Format(consts.DATE_FORMAT_DB), forced.Id,
 	)
 	INFO.Println(sql)
 	return tx.Exec(sql)

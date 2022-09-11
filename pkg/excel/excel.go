@@ -25,6 +25,14 @@ func (e *Page) Title(title string, hCell, vCell string, style int) {
 	}
 }
 
+func (e *Page) Range(title string, hCell, vCell string, style int) {
+	e.File.MergeCell(e.Sheet, hCell, vCell)
+	e.File.SetCellStr(e.Sheet, hCell, title)
+	if style > 0 {
+		e.File.SetCellStyle(e.Sheet, hCell, vCell, style)
+	}
+}
+
 func (e *Page) CellStyleAlignment(horizontal, vertical string, wrap bool) int {
 	style, _ := e.File.NewStyle(&excelize.Style{
 		Alignment: &excelize.Alignment{

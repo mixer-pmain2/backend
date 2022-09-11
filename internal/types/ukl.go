@@ -116,6 +116,7 @@ type UKLData struct {
 	Date2       string `json:"date2"`
 	Date3       string `json:"date3"`
 	Doctor      int    `json:"doctor"`
+	PatientId   int    `json:"patientId"`
 }
 
 type NewUKL struct {

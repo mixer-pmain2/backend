@@ -1,7 +1,9 @@
 package consts
 
 const (
-	TIME_FORMAT_DB = "2006-01-02"
+	DATE_FORMAT_DB    = "2006-01-02"
+	DATE_FORMAT_INPUT = "2006-01-02"
+	DATE_FORMAT_RU    = "02.01.2006"
 
 	REAS_NEW                        = "001"
 	REAS_TO                         = "P001"

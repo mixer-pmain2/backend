@@ -223,6 +223,33 @@ func (m *SprModel) GetParams(tx *sql.Tx) (*[]ServiceM, error) {
 
 }
 
+func (m *SprModel) GetParam(name string, tx *sql.Tx) (*ServiceM, error) {
+	sql := fmt.Sprintf(`select param, PARAM_I, PARAM_D, PARAM_S, KOMMENT, DN, DK from servis where param = '%s'`, name)
+	INFO.Println(sql)
+	row := tx.QueryRow(sql)
+	data := ServiceM{}
+	err := row.Scan(&data.Param, &data.ParamI, &data.ParamD, &data.ParamS, &data.Comment, &data.DateStart, &data.DateEnd)
+	if err != nil {
+		return nil, err
+	}
+	data.ParamS, err = utils.ToUTF8(data.ParamS)
+	if err != nil {
+		return nil, err
+	}
+	data.Comment, err = utils.ToUTF8(data.Comment)
+	if err != nil {
+		return nil, err
+	}
+	data.ParamS = strings.Trim(data.ParamS, " ")
+	data.Comment = strings.Trim(data.Comment, " ")
+	data.Param = strings.Trim(data.Param, " ")
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+
+}
+
 func (m *SprModel) GetSprReason(tx *sql.Tx) (*map[string]string, error) {
 	sql := fmt.Sprintf(`select kod1, na_me from spr_med where spr_nam = 'reg_reas1'
 union 

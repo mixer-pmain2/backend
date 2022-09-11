@@ -30,6 +30,7 @@ var (
 		TakenFromADN                   string
 		TakenForADNAccordingToClinical string
 		ProtocolUKL                    string
+		Form39General                  string
 	}{
 		ReceptionLog:                   "ReceptionLog",
 		VisitsPerPeriod:                "VisitsPerPeriod",
@@ -47,6 +48,7 @@ var (
 		TakenFromADN:                   "TakenFromADN",
 		TakenForADNAccordingToClinical: "TakenForADNAccordingToClinical",
 		ProtocolUKL:                    "ProtocolUKL",
+		Form39General:                  "Form39General",
 	}
 )
 
@@ -64,13 +66,13 @@ type reportFilter struct {
 	Category     int      `json:"category"`
 	TypeCategory string   `json:"typeCategory"`
 	RangeSection []int    `json:"rangeSection"`
+	Unit         int      `json:"unit"`
 }
 
 type reportParams struct {
 	Id      int          `json:"id"`
 	Code    string       `json:"code"`
 	UserId  int          `json:"userId"`
-	Unit    int          `json:"unit"`
 	Filters reportFilter `json:"filters"`
 	Status  string       `json:"status"`
 	Date    string       `json:"date"`

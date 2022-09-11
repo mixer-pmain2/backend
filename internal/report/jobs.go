@@ -17,6 +17,15 @@ import (
 	"time"
 )
 
+const (
+	HEIGHT_ROW  = 13
+	HEIGHT_2ROW = 25
+	HEIGHT_3ROW = 34
+	HEIGHT_4ROW = 47
+	HEIGHT_5ROW = 58
+	HEIGHT_6ROW = 69
+)
+
 var (
 	cacheReport = cache.CreateCache(time.Minute, time.Minute)
 )
@@ -27,12 +36,12 @@ type ReportsJob struct {
 // ReceptionLog Журнал приема
 func (r *ReportsJob) ReceptionLog(p reportParams, tx *sql.Tx) (*bytes.Buffer, error) {
 	var unit1, unit2 int
-	if p.Unit == 1 {
+	if p.Filters.Unit == 1 {
 		unit1 = 0
 		unit2 = 1
 	} else {
-		unit1 = p.Unit
-		unit2 = p.Unit + 1
+		unit1 = p.Filters.Unit
+		unit2 = p.Filters.Unit + 1
 	}
 	sqlQuery := fmt.Sprintf(`select id_pat, f, b_day, diag, c1, mask, prichina, uch, uch_d
 from f39_day('%s', %v) where (mask2 = %v) or (mask2 = %v)`, p.Filters.DateStart, p.UserId, unit1, unit2)
@@ -134,7 +143,7 @@ func (r *ReportsJob) VisitsPerPeriod(p reportParams, tx *sql.Tx) (*bytes.Buffer,
 	dateStart, _ := time.Parse("2006-01-02", p.Filters.RangeDate[0])
 	dateEnd, _ := time.Parse("2006-01-02", p.Filters.RangeDate[1])
 
-	sqlQuery := fmt.Sprintf(`select DAT, kol, prof from f39_diaposon('%s', '%s', %v, %v)`, p.Filters.RangeDate[0], p.Filters.RangeDate[1], p.UserId, p.Unit)
+	sqlQuery := fmt.Sprintf(`select DAT, kol, prof from f39_diaposon('%s', '%s', %v, %v)`, p.Filters.RangeDate[0], p.Filters.RangeDate[1], p.UserId, p.Filters.Unit)
 	rows, err := tx.Query(sqlQuery)
 	defer rows.Close()
 	if err != nil {
@@ -1738,6 +1747,324 @@ func (r *ReportsJob) TakenForADNAccordingToClinical(p reportParams, tx *sql.Tx) 
 	return buf, nil
 }
 
+func uklReportTypeOld(f *excelize.File, data types.UKLData, tx *sql.Tx) {
+	sheet := f.GetSheetName(0)
+	cellExcel := excel.CellExcel
+	title := "Бланк  протокола по оценке результативности и качества труда медицинского персонала"
+	title2 := "Критерии оценки качества медицинской помощи оказанной в амбулаторной помощи  врачом-психиатром участковым, врачом-психиатром детским участковым, врачом-психиатром подростковым участковым, врачом-психиатром (консультантом), врачом-психиатром детским (консультантом), врачом-психиатром подростковым (консультантом), врачом-сексологом, врачом-психотерапевтом, врачом-психиатром психиатрического отделения амбулаторного  принудительного лечения"
+
+	page := excel.Page{f, sheet}
+
+	collCount := 9
+
+	// row 1
+	sty := page.CellStyleTitle("center", "center", false, 11)
+	page.Title(fmt.Sprintf(title),
+		cellExcel(1, 1), cellExcel(collCount, 1), sty)
+
+	sty = page.CellStyleHeader2(9)
+	f.SetRowHeight(sheet, 2, 63)
+	page.Title(fmt.Sprintf(title2),
+		cellExcel(1, 2), cellExcel(collCount, 2), sty)
+
+	sty = page.CellStyleTitle("left", "center", false, 9)
+	f.SetRowHeight(sheet, 3, HEIGHT_ROW)
+	page.Title(fmt.Sprintf("Вкладной лист к амбулаторной карте больного"),
+		cellExcel(1, 3), cellExcel(collCount, 3), sty)
+
+	patient, _ := models.Model.Patient.Get(int64(data.PatientId), tx)
+	sty = page.CellStyleTitle("left", "center", false, 9)
+	f.SetRowHeight(sheet, 4, HEIGHT_ROW)
+	page.Title(fmt.Sprintf("Ф.И.О. пациента %s %s %s", patient.Lname, patient.Fname, patient.Sname),
+		cellExcel(1, 4), cellExcel(collCount, 4), sty)
+
+	doctor, _ := models.Model.User.Get(data.Doctor, tx)
+	f.SetRowHeight(sheet, 5, HEIGHT_ROW)
+	page.Title(fmt.Sprintf("Ф.И.О. врача  %s %s %s.", doctor.Lname, doctor.Fname, doctor.Sname),
+		cellExcel(1, 5), cellExcel(collCount, 5), sty)
+
+	f.SetRowHeight(sheet, 6, HEIGHT_ROW)
+	page.Title(fmt.Sprintf("шифр %v", data.PatientId),
+		cellExcel(1, 6), cellExcel(collCount, 6), sty)
+
+	d, _ := time.Parse(time.RFC3339, data.Date1)
+	f.SetRowHeight(sheet, 7, HEIGHT_ROW)
+	page.Title(fmt.Sprintf("Дата заполнения %s", d.Format("02.01.2006")),
+		cellExcel(1, 7), cellExcel(collCount, 7), sty)
+
+	s1 := 0
+	s2 := 0
+	s3 := 0
+	//table header
+	f.SetCellStyle(sheet, cellExcel(1, 8), cellExcel(collCount, 9), page.CellStyleHeader(9))
+	page.Range("Наименование критерия", cellExcel(1, 8), cellExcel(6, 9), 0)
+	page.Range("Баллы", cellExcel(7, 8), cellExcel(9, 8), 0)
+	f.SetCellStr(sheet, cellExcel(7, 9), "1 уровень")
+	f.SetCellStr(sheet, cellExcel(8, 9), "2 уровень")
+	f.SetCellStr(sheet, cellExcel(9, 9), "3 уровень")
+	// end table header
+
+	styTableTitle := page.CellStyleHeader(8)
+	f.SetRowHeight(sheet, 10, HEIGHT_ROW)
+	page.Range("1. Ведение медицинской документации - медицинской карты пациента, получающего медицинскую помощь в амбулаторных условиях:",
+		cellExcel(1, 10), cellExcel(collCount, 10), styTableTitle)
+
+	rowId := 11
+	f.SetCellStyle(
+		sheet,
+		cellExcel(1, rowId),
+		cellExcel(collCount, rowId+1),
+		page.CellStyleBody(8),
+	)
+	page.Range("1.1 Заполнение всех разделов, предусмотренных амбулаторной картой",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_1)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_1)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_1)
+	s1 += data.P1_1
+	s2 += data.P2_1
+	s3 += data.P3_1
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_2ROW)
+	page.Range("1.2 Наличие информированного добровольного согласия на медицинское вмешательство",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_2)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_2)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_2)
+	s1 += data.P1_2
+	s2 += data.P2_2
+	s3 += data.P3_2
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_ROW)
+	page.Range("2. Первичный осмотр пациента и сроки оказания медицинской помощи:",
+		cellExcel(1, rowId), cellExcel(collCount, rowId), styTableTitle)
+
+	rowId += 1
+	f.SetCellStyle(
+		sheet,
+		cellExcel(1, rowId),
+		cellExcel(collCount, rowId+4),
+		page.CellStyleBody(8),
+	)
+	f.SetRowHeight(sheet, rowId, HEIGHT_2ROW)
+	page.Range("2.1 Оформление результатов первичного осмотра, включая данные анамнеза заболевания, записью в амбулаторной карте",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_3)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_3)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_3)
+	s1 += data.P1_3
+	s2 += data.P2_3
+	s3 += data.P3_3
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_2ROW)
+	page.Range("2.2 Установление предварительного диагноза лечащим врачом в ходе первичного приема пациента",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_4)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_4)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_4)
+	s1 += data.P1_4
+	s2 += data.P2_4
+	s3 += data.P3_4
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_2ROW)
+	page.Range("2.3 Формирование плана обследования пациента при первичном осмотре с учетом предварительного диагноза",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_5)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_5)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_5)
+	s1 += data.P1_5
+	s2 += data.P2_5
+	s3 += data.P3_5
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_3ROW)
+	page.Range("2.4 Формирование плана лечения при первичном осмотре с учетом предварительного диагноза, клинических проявлений заболевания, тяжести заболевания или состояния пациента",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_6)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_6)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_6)
+	s1 += data.P1_6
+	s2 += data.P2_6
+	s3 += data.P3_6
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_4ROW)
+	page.Range("2.5 Назначение лекарственных препаратов для медицинского применения с учетом инструкций по применению лекарственных препаратов, возраста пациента, пола пациента, тяжести заболевания, наличия осложнений основного заболевания (состояния) и сопутствующих заболеваний",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_7)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_7)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_7)
+	s1 += data.P1_7
+	s2 += data.P2_7
+	s3 += data.P3_7
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_3ROW)
+	page.Range("3. Установление клинического диагноза на основании данных анамнеза, осмотра, данных лабораторных, инструментальных и иных методов исследования, предусмотренных стандартами медицинской помощи, а также клинических рекомендаций (протоколов лечения) по вопросам оказания медицинской помощи:",
+		cellExcel(1, rowId), cellExcel(collCount, rowId), styTableTitle)
+
+	rowId += 1
+	f.SetCellStyle(
+		sheet,
+		cellExcel(1, rowId),
+		cellExcel(collCount, rowId+4),
+		page.CellStyleBody(8),
+	)
+	f.SetRowHeight(sheet, rowId, HEIGHT_2ROW)
+	page.Range("3.1 Оформление обоснования клинического диагноза соответствующей записью в амбулаторной карте",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_8)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_8)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_8)
+	s1 += data.P1_8
+	s2 += data.P2_8
+	s3 += data.P3_8
+
+	rowId += 1
+	//f.SetRowHeight(sheet, rowId, HEIGHT_2ROW)
+	page.Range("3.2 Установление клинического диагноза в течение 10 дней с момента обращения",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_9)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_9)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_9)
+	s1 += data.P1_9
+	s2 += data.P2_9
+	s3 += data.P3_9
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_3ROW)
+	page.Range("3.3 Проведение при затруднении установления клинического диагноза консилиума врачей с внесением соответствующей записи в амбулаторную карту с подписью зав. амбулаторно-поликлиническим отделением",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_10)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_10)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_10)
+	s1 += data.P1_10
+	s2 += data.P2_10
+	s3 += data.P3_10
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_5ROW)
+	page.Range("3.4 Внесение соответствующей записи в амбулаторную карту при наличии заболевания (состояния), требующего оказания мед. помощи в стационарных условиях, с указанием перечня рекомендуемых лабораторных и инструментальных методов исследований, а также оформление направления с указанием клинического диагноза при необходимости оказания мед.помощи в стационарных условиях в плановой форме",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_11)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_11)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_11)
+	s1 += data.P1_11
+	s2 += data.P2_11
+	s3 += data.P3_11
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_4ROW)
+	page.Range("3.5 Проведение коррекции плана обследования и плана лечения с учетом клинического диагноза, состояния пациента, особенностей течения заболевания, наличия сопутствующих заболеваний, осложнений заболевания и результатов проводимого лечения на основе стандартов мед. помощи и клинических рекомендаций",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_12)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_12)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_12)
+	s1 += data.P1_12
+	s2 += data.P2_12
+	s3 += data.P3_12
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_ROW)
+	page.Range("4. Назначение и выписывание лекарственных препаратов в соответствии с установленным порядком:",
+		cellExcel(1, rowId), cellExcel(collCount, rowId), styTableTitle)
+
+	rowId += 1
+	f.SetCellStyle(
+		sheet,
+		cellExcel(1, rowId),
+		cellExcel(collCount, rowId+4),
+		page.CellStyleBody(8),
+	)
+	//f.SetRowHeight(sheet, rowId, HEIGHT_2ROW)
+	page.Range("4.1 Оформление протокола решения врачебной комиссии",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_13)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_13)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_13)
+	s1 += data.P1_13
+	s2 += data.P2_13
+	s3 += data.P3_13
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_3ROW)
+	page.Range("4.2 Внесение записи в амбулаторную карту при назначении лекарственных препаратов для медицинского применения и применении медицинских изделий по решению врачебной комиссии",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_14)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_14)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_14)
+	s1 += data.P1_14
+	s2 += data.P2_14
+	s3 += data.P3_14
+
+	rowId += 1
+	//f.SetRowHeight(sheet, rowId, HEIGHT_2ROW)
+	page.Range("5. Проведение экспертизы временной нетрудоспособности в установленном порядке",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_15)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_15)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_15)
+	s1 += data.P1_15
+	s2 += data.P2_15
+	s3 += data.P3_15
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_2ROW)
+	page.Range("6. Осуществление диспансерного наблюдения в установленном порядке с соблюдением периодичности обследования и длительности диспансерного наблюдения",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), data.P1_16)
+	f.SetCellInt(sheet, cellExcel(8, rowId), data.P2_16)
+	f.SetCellInt(sheet, cellExcel(9, rowId), data.P3_16)
+	s1 += data.P1_16
+	s2 += data.P2_16
+	s3 += data.P3_16
+
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_ROW)
+	page.Range("Итого:",
+		cellExcel(1, rowId), cellExcel(6, rowId), 0)
+	f.SetCellInt(sheet, cellExcel(7, rowId), s1)
+	f.SetCellInt(sheet, cellExcel(8, rowId), s2)
+	f.SetCellInt(sheet, cellExcel(9, rowId), s3)
+
+	borderBottom, _ := f.NewStyle(&excelize.Style{
+		Border: []excelize.Border{
+			{Type: "bottom", Color: "#000000", Style: 1},
+		},
+	})
+	fontSize8, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Bold: false,
+			Size: 8,
+		},
+	})
+	rowId += 2
+	f.SetCellStyle(
+		sheet,
+		cellExcel(1, rowId),
+		cellExcel(3, rowId+2),
+		fontSize8,
+	)
+	f.SetRowHeight(sheet, rowId, HEIGHT_ROW)
+	page.Range("Заведующий отделением", cellExcel(1, rowId), cellExcel(3, rowId), 0)
+	page.Range("", cellExcel(4, rowId), cellExcel(5, rowId), borderBottom)
+	page.Range("", cellExcel(7, rowId), cellExcel(8, rowId), borderBottom)
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_ROW)
+	page.Range("Заместитель главного врача", cellExcel(1, rowId), cellExcel(3, rowId), 0)
+	page.Range("", cellExcel(4, rowId), cellExcel(5, rowId), borderBottom)
+	page.Range("", cellExcel(7, rowId), cellExcel(8, rowId), borderBottom)
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, HEIGHT_ROW)
+	page.Range("Председатель ВК", cellExcel(1, rowId), cellExcel(3, rowId), 0)
+	page.Range("", cellExcel(4, rowId), cellExcel(5, rowId), borderBottom)
+	page.Range("", cellExcel(7, rowId), cellExcel(8, rowId), borderBottom)
+}
+
 func (r *ReportsJob) ProtocolUKL(p reportParams, tx *sql.Tx) (*bytes.Buffer, error) {
 	if p.Filters.Id == 0 {
 		return nil, errors.New(consts.ArrErrors[753])
@@ -1747,48 +2074,12 @@ func (r *ReportsJob) ProtocolUKL(p reportParams, tx *sql.Tx) (*bytes.Buffer, err
 p1_1, p1_2, p1_3, p1_4, p1_5, p1_6, p1_7, p1_8, p1_9, p1_10, p1_11, p1_12, p1_13, p1_14, p1_15, p1_16, p1_17, p1_18, p1_19, p1_20, p1_21, p1_22, p1_23, p1_24, p1_25, p1_26, p1_27, p1_28, p1_29, p1_30, p1_31, p1_32, p1_33, p1_34, p1_35,
 p2_1, p2_2, p2_3, p2_4, p2_5, p2_6, p2_7, p2_8, p2_9, p2_10, p2_11, p2_12, p2_13, p2_14, p2_15, p2_16, p2_17, p2_18, p2_19, p2_20, p2_21, p2_22, p2_23, p2_24, p2_25, p2_26, p2_27, p2_28, p2_29, p2_30, p2_31, p2_32, p2_33, p2_34, p2_35,
 p3_1, p3_2, p3_3, p3_4, p3_5, p3_6, p3_7, p3_8, p3_9, p3_10, p3_11, p3_12, p3_13, p3_14, p3_15, p3_16, p3_17, p3_18, p3_19, p3_20, p3_21, p3_22, p3_23, p3_24, p3_25, p3_26, p3_27, p3_28, p3_29, p3_30, p3_31, p3_32, p3_33, p3_34, p3_35,
-NZ_REGISTRAT, p1_user, p2_user, p3_user, p1_date, p2_date, p3_date, dock
+NZ_REGISTRAT, p1_user, p2_user, p3_user, p1_date, p2_date, p3_date, dock, patient_id
 from UKL where nom_z = ?`)
 
 	row := tx.QueryRow(sqlQuery, p.Filters.Id)
 	//dateStart, _ := time.Parse("2006-01-02", p.Filters.RangeDate[0])
 	//dateEnd, _ := time.Parse("2006-01-02", p.Filters.RangeDate[1])
-
-	cellExcel := excel.CellExcel
-	toCharStrConst := excel.ToCharStrConst
-
-	f := excel.CreateFile()
-	sheet := f.GetSheetName(0)
-	f.SetPageLayout(sheet,
-		excelize.PageLayoutOrientation(excelize.OrientationPortrait),
-		excelize.PageLayoutPaperSize(9),
-	)
-	page := excel.Page{f, sheet}
-
-	sty := page.CellStyleTitle("center", "center", false, 9)
-	collCount := 7
-	// row 1
-	page.Title(
-		fmt.Sprintf("Список пациентов взятых на АДН по клиническим показаниям"),
-		cellExcel(1, 1), cellExcel(collCount, 1), sty)
-	// row 3
-	f.SetRowHeight(sheet, 3, 27)
-	f.SetCellStyle(sheet, cellExcel(1, 3), cellExcel(collCount, 3), page.CellStyleHeader(9))
-	f.SetCellStr(sheet, cellExcel(1, 3), "")
-	f.SetCellStr(sheet, cellExcel(2, 3), "Шифр")
-	f.SetCellStr(sheet, cellExcel(3, 3), "Ф.И.О.")
-	f.SetCellStr(sheet, cellExcel(4, 3), "Д.р.")
-	f.SetCellStr(sheet, cellExcel(5, 3), "Участок")
-	f.SetCellStr(sheet, cellExcel(6, 3), "Дата взятия")
-	f.SetCellStr(sheet, cellExcel(7, 3), "Диагноз")
-
-	f.SetColWidth(sheet, toCharStrConst(1), toCharStrConst(1), 4.29)
-	f.SetColWidth(sheet, toCharStrConst(2), toCharStrConst(2), 7.29)
-	f.SetColWidth(sheet, toCharStrConst(3), toCharStrConst(3), 28)
-	f.SetColWidth(sheet, toCharStrConst(4), toCharStrConst(4), 10.14)
-	f.SetColWidth(sheet, toCharStrConst(5), toCharStrConst(5), 10.14)
-	f.SetColWidth(sheet, toCharStrConst(6), toCharStrConst(6), 10.29)
-	f.SetColWidth(sheet, toCharStrConst(7), toCharStrConst(7), 10.14)
 
 	data := types.UKLData{}
 	err := row.Scan(
@@ -1796,16 +2087,292 @@ from UKL where nom_z = ?`)
 		&data.P1_1, &data.P1_2, &data.P1_3, &data.P1_4, &data.P1_5, &data.P1_6, &data.P1_7, &data.P1_8, &data.P1_9, &data.P1_10, &data.P1_11, &data.P1_12, &data.P1_13, &data.P1_14, &data.P1_15, &data.P1_16, &data.P1_17, &data.P1_18, &data.P1_19, &data.P1_20, &data.P1_21, &data.P1_22, &data.P1_23, &data.P1_24, &data.P1_25, &data.P1_26, &data.P1_27, &data.P1_28, &data.P1_29, &data.P1_30, &data.P1_31, &data.P1_32, &data.P1_33, &data.P1_34, &data.P1_35,
 		&data.P2_1, &data.P2_2, &data.P2_3, &data.P2_4, &data.P2_5, &data.P2_6, &data.P2_7, &data.P2_8, &data.P2_9, &data.P2_10, &data.P2_11, &data.P2_12, &data.P2_13, &data.P2_14, &data.P2_15, &data.P2_16, &data.P2_17, &data.P2_18, &data.P2_19, &data.P2_20, &data.P2_21, &data.P2_22, &data.P2_23, &data.P2_24, &data.P2_25, &data.P2_26, &data.P2_27, &data.P2_28, &data.P2_29, &data.P2_30, &data.P2_31, &data.P2_32, &data.P2_33, &data.P2_34, &data.P2_35,
 		&data.P3_1, &data.P3_2, &data.P3_3, &data.P3_4, &data.P3_5, &data.P3_6, &data.P3_7, &data.P3_8, &data.P3_9, &data.P3_10, &data.P3_11, &data.P3_12, &data.P3_13, &data.P3_14, &data.P3_15, &data.P3_16, &data.P3_17, &data.P3_18, &data.P3_19, &data.P3_20, &data.P3_21, &data.P3_22, &data.P3_23, &data.P3_24, &data.P3_25, &data.P3_26, &data.P3_27, &data.P3_28, &data.P3_29, &data.P3_30, &data.P3_31, &data.P3_32, &data.P3_33, &data.P3_34, &data.P3_35,
-		&data.RegistratId, &data.User1, &data.User2, &data.User3, &data.Date1, &data.Date2, &data.Date3, &data.Doctor,
+		&data.RegistratId, &data.User1, &data.User2, &data.User3, &data.Date1, &data.Date2, &data.Date3, &data.Doctor, &data.PatientId,
 	)
 	if err != nil {
 		return nil, err
 	}
+	//unit := 0
+	//if data.VisitId != 0 {
+	//	unit, _ = getVisitById(data.VisitId, tx)
+	//}
 
-	sty = page.CellStyleTitle("left", "center", false, 9)
-	//page.Title("По данным отдела АСУ", cellExcel(1, nRow), cellExcel(collCount, nRow), sty)
-	//page.Title(fmt.Sprintf("Получено %s ", time.Now().Format("02.01.2006 15:04:05")), cellExcel(1, nRow+1), cellExcel(collCount, nRow+1), sty)
+	//toCharStrConst := excel.ToCharStrConst
+
+	f := excel.CreateFile()
+	sheet := f.GetSheetName(0)
+	f.SetPageLayout(sheet,
+		excelize.PageLayoutOrientation(excelize.OrientationPortrait),
+		excelize.PageLayoutPaperSize(9),
+	)
+	f.SetPageMargins(sheet,
+		excelize.PageMarginBottom(0.5),
+		excelize.PageMarginFooter(1.0),
+		excelize.PageMarginHeader(1.0),
+		excelize.PageMarginLeft(0.5),
+		excelize.PageMarginRight(0),
+		excelize.PageMarginTop(0.5),
+	)
+
+	uklReportTypeOld(f, data, tx)
+	//if unit == 2 {
+	//	uklReportTypeOld(f, data, tx)
+	//} else if unit == 4 {
+	//
+	//} else {
+	//	uklReportTypeOld(f, data, tx)
+	//}
 
 	buf, _ := f.WriteToBuffer()
+	return buf, nil
+}
+
+func (r *ReportsJob) form39GenerateData(d1 string, d2 string) {
+	_, tx := CreateTx()
+	defer tx.Commit()
+	//maxDay, err := models.Model.Spr.GetParam("max_day", tx)
+	//if err != nil {
+	//	ERROR.Println(err)
+	//	return
+	//}
+	//dateEnd, err := time.Parse(consts.DATE_FORMAT_INPUT, d2)
+	//if err != nil {
+	//	ERROR.Println(err)
+	//	return
+	//}
+	//now := time.Now()
+	//if (now.Day() <= maxDay.ParamI && dateEnd.Month() == now.Month()-1 && dateEnd.Year() == now.Year()) ||
+	//	(now.Month() == dateEnd.Month() && now.Year() == dateEnd.Year()) {
+	err := form39GenerateData(d1, d2, tx)
+	if err != nil {
+		ERROR.Println(err)
+	}
+	//}
+}
+
+func (r *ReportsJob) Form39General(p reportParams, tx *sql.Tx) (*bytes.Buffer, error) {
+	if len(p.Filters.RangeDate) < 2 {
+		return nil, errors.New(consts.ArrErrors[750])
+	}
+	dateEnd, _ := time.Parse(consts.DATE_FORMAT_INPUT, p.Filters.RangeDate[1])
+	dateStart := time.Date(dateEnd.Year(), dateEnd.Month(), 1, 0, 0, 0, 0, dateEnd.Location())
+	p.Filters.RangeDate[0] = dateStart.Format(consts.DATE_FORMAT_INPUT)
+	p.Filters.RangeDate[1] = dateEnd.Format(consts.DATE_FORMAT_INPUT)
+
+	cacheName := fmt.Sprintf("Form39General_%s_%s_%v", p.Filters.RangeDate[0], p.Filters.RangeDate[1], p.Filters.Unit)
+	item, ok := cache.AppCache.Get(cacheName)
+	if ok {
+		return item.(*bytes.Buffer), nil
+	}
+
+	r.form39GenerateData(dateStart.Format(consts.DATE_FORMAT_INPUT), dateEnd.Format(consts.DATE_FORMAT_INPUT))
+
+	sqlQuery := fmt.Sprintf(`select name_doct, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20 from F39_ARHIV_SVOD('%s', '%s', %v)`,
+		p.Filters.RangeDate[0], p.Filters.RangeDate[1], p.Filters.Unit)
+	INFO.Println(sqlQuery)
+	rows, err := tx.Query(sqlQuery)
+	defer rows.Close()
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+	type data struct {
+		doctorName string
+		p1         int
+		p2         int
+		p3         int
+		p4         int
+		p5         int
+		p6         int
+		p7         int
+		p8         int
+		p9         int
+		p10        int
+		p11        int
+		p12        int
+		p13        int
+		p14        int
+		p15        int
+		p16        int
+		p17        int
+		p18        int
+		p19        int
+		p20        int
+	}
+
+	cellExcel := excel.CellExcel
+	toCharStrConst := excel.ToCharStrConst
+
+	f := excel.CreateFile()
+	sheet := f.GetSheetName(0)
+	f.SetPageLayout(sheet,
+		excelize.PageLayoutOrientation(excelize.OrientationLandscape),
+		excelize.PageLayoutPaperSize(9),
+	)
+	page := excel.Page{f, sheet}
+	collCount := 21
+	f.SetPageMargins(sheet,
+		excelize.PageMarginBottom(0.5),
+		excelize.PageMarginFooter(1.0),
+		excelize.PageMarginHeader(1.0),
+		excelize.PageMarginLeft(0.5),
+		excelize.PageMarginRight(0),
+		excelize.PageMarginTop(0.5),
+	)
+
+	//dateStart, _ := time.Parse("2006-01-02", p.Filters.RangeDate[0])
+	//dateEnd, _ := time.Parse("2006-01-02", p.Filters.RangeDate[1])
+
+	f.SetColWidth(sheet, toCharStrConst(1), toCharStrConst(1), 30)
+	f.SetColWidth(sheet, toCharStrConst(2), toCharStrConst(collCount), 5.5)
+
+	styCC := page.CellStyleTitle("center", "center", false, 9)
+	styLC := page.CellStyleTitle("left", "center", false, 9)
+	//styRC := page.CellStyleTitle("right", "center", false, 9)
+	// row 1
+	rowId := 1
+	page.Title("Министерство здравоохранения", cellExcel(1, rowId), cellExcel(1, rowId), styCC)
+	page.Title("СВОДНАЯ ВЕДОМОСТЬ", cellExcel(2, rowId), cellExcel(14, rowId+3), styCC)
+	page.Title(fmt.Sprintf("Дата создания списка: %s", time.Now().Format(consts.DATE_FORMAT_RU)), cellExcel(15, rowId), cellExcel(collCount, rowId), styLC)
+	rowId += 1
+	page.Title("Российской Федерации", cellExcel(1, rowId), cellExcel(1, rowId), styCC)
+	page.Title("Медицинская документация", cellExcel(16, rowId), cellExcel(collCount, rowId), styLC)
+	rowId += 1
+	page.Title("БУЗОО КПБ им. Солодникова Н.Н.", cellExcel(1, rowId), cellExcel(1, rowId), styCC)
+	page.Title("форма № 039/у-02", cellExcel(16, rowId), cellExcel(collCount, rowId), styLC)
+	rowId += 1
+	page.Title("утверждена приказом Минздравом России", cellExcel(16, rowId), cellExcel(collCount, rowId), styLC)
+	rowId += 1
+	unitName := "Взрослый диспансер"
+	switch p.Filters.Unit {
+	case 1:
+		unitName = "Взрослый диспансер"
+	case 2:
+		unitName = "Психотерапия"
+	case 4:
+		unitName = "Суицидология"
+	case 8:
+		unitName = "ОИЛС"
+	case 16:
+		unitName = "Детский диспансер"
+	case 1024:
+		unitName = "Специалисты"
+	case 512:
+		unitName = "Село"
+	case 2048:
+		unitName = "АПЛ"
+	}
+	page.Title(unitName, cellExcel(1, rowId), cellExcel(1, rowId), styLC)
+	page.Title("учета врачебных посещений в амбулаторно-поликлинических учреждениях, на дому", cellExcel(2, rowId), cellExcel(14, rowId), styCC)
+	page.Title("от 30.12.2002 №413", cellExcel(16, rowId), cellExcel(collCount, rowId), styLC)
+	rowId += 1
+	page.Title(fmt.Sprintf("с %s - %s", dateStart.Format(consts.DATE_FORMAT_RU), dateEnd.Format(consts.DATE_FORMAT_RU)), cellExcel(2, rowId), cellExcel(14, rowId), styCC)
+	//table header
+	styHeader := page.CellStyleHeader(9)
+	rowId += 1
+	page.Title("Ф.И.О. врач", cellExcel(1, rowId), cellExcel(1, rowId+2), styHeader)
+	page.Title("ВСЕГО", cellExcel(2, rowId), cellExcel(2, rowId+2), styHeader)
+	page.Title("Число посещений в поликлинике", cellExcel(3, rowId), cellExcel(4, rowId+1), styHeader)
+	page.Title("В том числе в возрасте (из гарфы2)", cellExcel(5, rowId), cellExcel(6, rowId+1), styHeader)
+	page.Title("Из общего числа посещений в поликлинике по поводу заболеваний", cellExcel(7, rowId), cellExcel(9, rowId+1), styHeader)
+	page.Title("Из гр. 3 - профилактических", cellExcel(10, rowId), cellExcel(10, rowId+2), styHeader)
+	page.Title("Число посещений на дому всего", cellExcel(11, rowId), cellExcel(11, rowId+2), styHeader)
+	page.Title("из общего числа посещений на дому", cellExcel(12, rowId), cellExcel(17, rowId), styHeader)
+	page.Title("Число посещений по видам оплаты", cellExcel(18, rowId), cellExcel(21, rowId), styHeader)
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, 38)
+	page.Title("по поводу заболеваний", cellExcel(12, rowId), cellExcel(15, rowId), styHeader)
+	page.Title("из числа профилактических", cellExcel(16, rowId), cellExcel(17, rowId), styHeader)
+	page.Title("ОМС", cellExcel(18, rowId), cellExcel(18, rowId+1), styHeader)
+	page.Title("Бюджет", cellExcel(19, rowId), cellExcel(19, rowId+1), styHeader)
+	page.Title("Платные", cellExcel(20, rowId), cellExcel(20, rowId+1), styHeader)
+	page.Title("ДМС", cellExcel(21, rowId), cellExcel(21, rowId+1), styHeader)
+	rowId += 1
+	f.SetRowHeight(sheet, rowId, 38)
+	page.Title("Всего", cellExcel(3, rowId), cellExcel(3, rowId), styHeader)
+	page.Title("Сельских", cellExcel(4, rowId), cellExcel(4, rowId), styHeader)
+	page.Title("0-17 лет", cellExcel(5, rowId), cellExcel(5, rowId), styHeader)
+	page.Title("60 лет и старше", cellExcel(6, rowId), cellExcel(6, rowId), styHeader)
+	page.Title("Всего", cellExcel(7, rowId), cellExcel(7, rowId), styHeader)
+	page.Title("0-17 лет", cellExcel(8, rowId), cellExcel(8, rowId), styHeader)
+	page.Title("60 лет старше", cellExcel(9, rowId), cellExcel(9, rowId), styHeader)
+	page.Title("Всего", cellExcel(12, rowId), cellExcel(12, rowId), styHeader)
+	page.Title("0-17 лет", cellExcel(13, rowId), cellExcel(13, rowId), styHeader)
+	page.Title("из них 0-1 год", cellExcel(14, rowId), cellExcel(14, rowId), styHeader)
+	page.Title("60 лет и старше", cellExcel(15, rowId), cellExcel(15, rowId), styHeader)
+	page.Title("0-17 лет", cellExcel(16, rowId), cellExcel(16, rowId), styHeader)
+	page.Title("0-1 год", cellExcel(17, rowId), cellExcel(17, rowId), styHeader)
+
+	styBodyL, _ := f.NewStyle(&excelize.Style{
+		Alignment: &excelize.Alignment{
+			WrapText: false,
+			Vertical: "left",
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "#000000", Style: 1},
+			{Type: "right", Color: "#000000", Style: 1},
+			{Type: "bottom", Color: "#000000", Style: 1},
+			{Type: "top", Color: "#000000", Style: 1},
+		},
+		Font: &excelize.Font{
+			Size: 9,
+		},
+	})
+	styBodyR, _ := f.NewStyle(&excelize.Style{
+		Alignment: &excelize.Alignment{
+			WrapText: false,
+			Vertical: "right",
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "#000000", Style: 1},
+			{Type: "right", Color: "#000000", Style: 1},
+			{Type: "bottom", Color: "#000000", Style: 1},
+			{Type: "top", Color: "#000000", Style: 1},
+		},
+		Font: &excelize.Font{
+			Size: 9,
+		},
+	})
+	rowId += 1
+	for rows.Next() {
+		row := data{}
+		err := rows.Scan(&row.doctorName, &row.p1, &row.p2, &row.p3, &row.p4, &row.p5, &row.p6, &row.p7, &row.p8, &row.p9,
+			&row.p10, &row.p11, &row.p12, &row.p13, &row.p14, &row.p15, &row.p16, &row.p17, &row.p18, &row.p19, &row.p20)
+		if err != nil {
+			ERROR.Println(err)
+			return nil, err
+		}
+
+		doctorName, _ := utils.ToUTF8(row.doctorName)
+
+		f.SetCellStyle(sheet, cellExcel(1, rowId), cellExcel(1, rowId), styBodyL)
+		f.SetCellStyle(sheet, cellExcel(2, rowId), cellExcel(21, rowId), styBodyR)
+		page.SetCellStr(1, rowId, doctorName)
+		page.SetCellInt(2, rowId, row.p1)
+		page.SetCellInt(3, rowId, row.p2)
+		page.SetCellInt(4, rowId, row.p3)
+		page.SetCellInt(5, rowId, row.p4)
+		page.SetCellInt(6, rowId, row.p5)
+		page.SetCellInt(7, rowId, row.p6)
+		page.SetCellInt(8, rowId, row.p7)
+		page.SetCellInt(9, rowId, row.p8)
+		page.SetCellInt(10, rowId, row.p9)
+		page.SetCellInt(11, rowId, row.p10)
+		page.SetCellInt(12, rowId, row.p11)
+		page.SetCellInt(13, rowId, row.p12)
+		page.SetCellInt(14, rowId, row.p13)
+		page.SetCellInt(15, rowId, row.p14)
+		page.SetCellInt(16, rowId, row.p15)
+		page.SetCellInt(17, rowId, row.p16)
+		page.SetCellInt(18, rowId, row.p17)
+		page.SetCellInt(19, rowId, row.p18)
+		page.SetCellInt(20, rowId, row.p19)
+		page.SetCellInt(21, rowId, 0)
+
+		rowId += 1
+	}
+
+	buf, _ := f.WriteToBuffer()
+	cache.AppCache.Set(cacheName, buf, time.Minute)
 	return buf, nil
 }

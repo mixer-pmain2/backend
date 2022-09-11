@@ -1358,7 +1358,7 @@ func (p *patient) NewUKLByVisitPatient(data *types.NewUKL) (int, error) {
 		return 21, err
 	}
 	if data.Level == 1 {
-		dateLastUkl, _ := time.Parse(consts.TIME_FORMAT_DB, lastUkl.Date1)
+		dateLastUkl, _ := time.Parse(consts.DATE_FORMAT_DB, lastUkl.Date1)
 		duration := time.Now().Sub(dateLastUkl)
 		if data.Unit == consts.UNIT_APL {
 			if duration < time.Hour*24*90 {
@@ -1392,7 +1392,7 @@ func (p *patient) NewUKLByVisitPatient(data *types.NewUKL) (int, error) {
 			}
 		}
 		if !allowEditDate {
-			data.Date = time.Now().Format(consts.TIME_FORMAT_DB)
+			data.Date = time.Now().Format(consts.DATE_FORMAT_DB)
 		}
 		_, err = model.NewUKLByVisitPatientLvl1(data, lastUchet.Id, tx)
 		if err != nil {
@@ -1485,7 +1485,7 @@ func (p *patient) NewUKLBySuicide(data *types.NewUKL) (int, error) {
 		if lastVisit.Id == lastUkl.VisitId {
 			return 801, nil
 		}
-		data.Date = time.Now().Format(consts.TIME_FORMAT_DB)
+		data.Date = time.Now().Format(consts.DATE_FORMAT_DB)
 		_, err = model.NewUKLBySuicide1(data, lastVisit.Id, tx)
 		if err != nil {
 			return -1, err
@@ -1577,7 +1577,7 @@ func (p *patient) NewUKLByPsychotherapy(data *types.NewUKL) (int, error) {
 		if lastVisit.Id == lastUkl.VisitId {
 			return 801, nil
 		}
-		data.Date = time.Now().Format(consts.TIME_FORMAT_DB)
+		data.Date = time.Now().Format(consts.DATE_FORMAT_DB)
 		_, err = model.NewUKLByPsychotherapy1(data, lastVisit.Id, tx)
 		if err != nil {
 			return -1, err
@@ -1822,8 +1822,8 @@ func (p *patient) PostForcedByPatient(forced *types.Forced) (int, error) {
 	if forced.ActDate == "" {
 		forced.ActDate = dateNull
 	}
-	if dateView, _ := time.Parse(consts.TIME_FORMAT_DB, forced.DateView); true {
-		actDate, _ := time.Parse(consts.TIME_FORMAT_DB, forced.ActDate)
+	if dateView, _ := time.Parse(consts.DATE_FORMAT_DB, forced.DateView); true {
+		actDate, _ := time.Parse(consts.DATE_FORMAT_DB, forced.ActDate)
 
 		if dateView.Sub(actDate) < 0 {
 
@@ -1831,8 +1831,8 @@ func (p *patient) PostForcedByPatient(forced *types.Forced) (int, error) {
 	}
 
 	dateEnd, _ := time.Parse(time.RFC3339, currentForced.DateEnd)
-	dNull, _ := time.Parse(consts.TIME_FORMAT_DB, dateNull)
-	if dateEnd.Format(consts.TIME_FORMAT_DB) != dNull.Format(consts.TIME_FORMAT_DB) && currentForced.DateEnd != "" {
+	dNull, _ := time.Parse(consts.DATE_FORMAT_DB, dateNull)
+	if dateEnd.Format(consts.DATE_FORMAT_DB) != dNull.Format(consts.DATE_FORMAT_DB) && currentForced.DateEnd != "" {
 		return 855, nil
 	}
 	if forced.Number != forcedLast.Number {
@@ -1910,8 +1910,8 @@ func (p *patient) PostNewForcedByPatient(forced *types.Forced) (int, error) {
 	if forced.ActDate == "" {
 		forced.ActDate = dateNull
 	}
-	if dateView, _ := time.Parse(consts.TIME_FORMAT_DB, forced.DateView); true {
-		actDate, _ := time.Parse(consts.TIME_FORMAT_DB, forced.ActDate)
+	if dateView, _ := time.Parse(consts.DATE_FORMAT_DB, forced.DateView); true {
+		actDate, _ := time.Parse(consts.DATE_FORMAT_DB, forced.ActDate)
 
 		if dateView.Sub(actDate) < 0 {
 
@@ -1983,8 +1983,8 @@ func (p *patient) EndForcedByPatient(forced *types.Forced) (int, error) {
 	if forced.ActDate == "" {
 		forced.ActDate = dateNull
 	}
-	if dateView, _ := time.Parse(consts.TIME_FORMAT_DB, forced.DateView); true {
-		actDate, _ := time.Parse(consts.TIME_FORMAT_DB, forced.ActDate)
+	if dateView, _ := time.Parse(consts.DATE_FORMAT_DB, forced.DateView); true {
+		actDate, _ := time.Parse(consts.DATE_FORMAT_DB, forced.ActDate)
 
 		if dateView.Sub(actDate) < 0 {
 
