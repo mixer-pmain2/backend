@@ -1918,6 +1918,14 @@ func (p *patient) PostNewForcedByPatient(forced *types.Forced) (int, error) {
 		}
 	}
 
+	pol_date, _ := time.Parse(consts.DATE_FORMAT_INPUT, forced.CourtConclusionDate)
+	op_date, _ := time.Parse(consts.DATE_FORMAT_INPUT, forced.CourtDate)
+
+	//pol_date >=op_date
+	if pol_date.Sub(op_date) < 0 {
+		return 858, nil
+	}
+
 	if err != nil {
 		return 22, err
 	}
