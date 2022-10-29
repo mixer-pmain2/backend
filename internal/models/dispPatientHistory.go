@@ -68,7 +68,7 @@ type HistoryHospital struct {
 
 func (m *patientModel) HistoryHospital(id int, tx *sql.Tx) (*[]HistoryHospital, error) {
 	var data []HistoryHospital
-	sql := fmt.Sprintf(`select datp, datv, dp, dv, diagp, diagv, otd, ni, we, nom_z from find_stac_otkaz(%v) order by datp DESC`, id)
+	sql := fmt.Sprintf(`select datp, datv, dp, dv, diagp, diagv, trim(otd), ni, we, nom_z from find_stac_otkaz(%v) order by datp DESC`, id)
 	INFO.Println(sql)
 	rows, err := tx.Query(sql)
 	defer rows.Close()
