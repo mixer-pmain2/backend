@@ -1918,8 +1918,22 @@ func (p *patient) PostNewForcedByPatient(forced *types.Forced) (int, error) {
 		}
 	}
 
+	if sod, err := p.SOD(int64(forced.PatientId), true); err == nil {
+		if len(*sod) == 0 {
+			return 859, nil
+		}
+	} else {
+		ERROR.Println(err)
+		return 0, err
+	}
+
+	if forced.CourtConclusionDate == dateNull || forced.CourtDate == dateNull {
+		return 860, nil
+	}
+
 	pol_date, _ := time.Parse(consts.DATE_FORMAT_INPUT, forced.CourtConclusionDate)
 	op_date, _ := time.Parse(consts.DATE_FORMAT_INPUT, forced.CourtDate)
+	fmt.Println(pol_date, op_date)
 
 	//pol_date >=op_date
 	if pol_date.Sub(op_date) < 0 {
