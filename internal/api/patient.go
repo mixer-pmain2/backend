@@ -1266,6 +1266,52 @@ func (p *patientApi) GetViewed(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (p *patientApi) GetPolicy(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	params := mux.Vars(r)
+	id, _ := strconv.Atoi(params["id"])
+
+	isCache, err := strconv.ParseBool(r.URL.Query().Get("cache"))
+	if err != nil {
+		isCache = true
+	}
+
+	c := controller.Init()
+	data, err := c.Patient.GetPolicy(id, isCache)
+	if err != nil {
+		return err
+	}
+
+	resMarshal, _ := json.Marshal(data)
+	w.Write(resMarshal)
+	return nil
+}
+
+func (p *patientApi) UpdatePolicy(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	params := mux.Vars(r)
+	id, _ := strconv.Atoi(params["id"])
+
+	policy := types.Policy{}
+	getParams(r, &policy)
+	policy.PatientId = id
+
+	c := controller.Init()
+	val, err := c.Patient.UpdatePolicy(policy)
+	if err != nil {
+		return err
+	}
+
+	success(val, w)
+	return nil
+}
+
 func (p *patientApi) GetForced(w http.ResponseWriter, r *http.Request) error {
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusOK)

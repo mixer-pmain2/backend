@@ -1722,6 +1722,57 @@ func (p *patient) GetViewed(id int, number int, isCache bool) (*[]types.ViewedM,
 	return data, nil
 }
 
+func (p *patient) GetPolicy(id int, isCache bool) (*types.Policy, error) {
+	cacheName := fmt.Sprintf("GetPolicy_%v", id)
+	if isCache {
+		item, ok := cache.AppCache.Get(cacheName)
+		if ok {
+			return item.(*types.Policy), nil
+		}
+	}
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	data, err := model.GetPolicy(id, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	cache.AppCache.Set(cacheName, data, 0)
+	return data, nil
+}
+
+func (p *patient) UpdatePolicy(policy types.Policy) (int, error) {
+	cacheName := fmt.Sprintf("GetPolicy_%v", policy.PatientId)
+	cache.AppCache.Delete(cacheName)
+
+	model := models.Model.Patient
+	err, tx := models.Model.CreateTx()
+	if err != nil {
+		ERROR.Println(err.Error())
+		return 22, err
+	}
+	defer tx.Rollback()
+	_, err = model.UpdatePolicy(policy, tx)
+	if err != nil {
+		ERROR.Println(err.Error())
+		return 22, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		ERROR.Println(err)
+		return 22, err
+	}
+	return 0, nil
+}
+
 func (p *patient) GetForced(id int, isCache bool) (*types.Forced, error) {
 	cacheName := fmt.Sprintf("GetForced%v", id)
 	if isCache {

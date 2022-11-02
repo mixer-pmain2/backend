@@ -1212,6 +1212,44 @@ order by osm_date desc`, id, number)
 	return &data, nil
 }
 
+func (m *patientModel) GetPolicy(id int, tx *sql.Tx) (*types.Policy, error) {
+	sqlQuery := fmt.Sprintf(`SELECT FIRST 1 patient_id, trim(komp), trim(nomer_str), trim(seria_str) FROM polis WHERE PATIENT_ID = %v`, id)
+
+	INFO.Println(sqlQuery)
+
+	row := tx.QueryRow(sqlQuery)
+	data := types.Policy{}
+	company := sql.NullInt64{}
+	err := row.Scan(&data.PatientId, &company, &data.Number, &data.Series)
+	if err != nil {
+		ERROR.Println(err)
+		return nil, err
+	}
+	data.Company = int(company.Int64)
+
+	return &data, nil
+}
+
+func (m *patientModel) UpdatePolicy(policy types.Policy, tx *sql.Tx) (bool, error) {
+	_, err := tx.Exec(`delete from polis where patient_id = ?`, policy.PatientId)
+	if err != nil {
+		ERROR.Println(err)
+		return false, err
+	}
+	sqlQuery := fmt.Sprintf(`insert into polis (patient_id, komp, nomer_str, seria_str) values (%v, %v, %s, %s)`,
+		policy.PatientId, policy.Company, policy.Number, policy.Series)
+
+	INFO.Println(sqlQuery)
+
+	_, err = tx.Exec(sqlQuery)
+	if err != nil {
+		ERROR.Println(err)
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (m *patientModel) GetForced(id int, tx *sql.Tx) (*types.Forced, error) {
 	sqlQuery := fmt.Sprintf(`select nom_z, PATIENT_ID, num_pr, 
 op_date, pol_date, sud,

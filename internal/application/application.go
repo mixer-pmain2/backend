@@ -73,6 +73,8 @@ func CreateRouters(server *server.Server) {
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/forced/end/", apperror.Middleware(apiHandlers.Patient.EndForcedByPatient)).Methods(http.MethodPost, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/forced/", apperror.Middleware(apiHandlers.Patient.GetForced)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/viewed/", apperror.Middleware(apiHandlers.Patient.GetViewed)).Methods(http.MethodGet, http.MethodOptions)
+	apiRouter.HandleFunc("/patient/{id:[0-9]*}/policy/", apperror.Middleware(apiHandlers.Patient.GetPolicy)).Methods(http.MethodGet, http.MethodOptions)
+	apiRouter.HandleFunc("/patient/{id:[0-9]*}/policy/", apperror.Middleware(apiHandlers.Patient.UpdatePolicy)).Methods(http.MethodPut, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/{id:[0-9]*}/", apperror.Middleware(apiHandlers.Patient.Get)).Methods(http.MethodGet, http.MethodOptions)
 	apiRouter.HandleFunc("/patient/prof/", apperror.Middleware(apiHandlers.Patient.NewProf)).Methods(http.MethodPost, http.MethodOptions)
 	apiRouter.HandleFunc("/administration/doctor/location/", apperror.Middleware(apiHandlers.Administration.DoctorLocation)).Methods(http.MethodPost, http.MethodOptions)

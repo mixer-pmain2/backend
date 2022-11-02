@@ -297,3 +297,10 @@ type SprVisitN struct {
 	Code int    `json:"code"`
 	Name string `json:"name"`
 }
+
+type Policy struct {
+	PatientId int    `json:"patientId"`
+	Company   int    `json:"company"`
+	Number    string `json:"number"`
+	Series    string `json:"series"`
+}
