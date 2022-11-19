@@ -6,3 +6,9 @@ static
 index.html
 logs/*
 *.dll
+
+settings.json
+update
+old
+
+main.exe

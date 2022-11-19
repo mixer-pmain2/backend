@@ -71,6 +71,15 @@ func main() {
 			fmt.Printf("Error started report runner: %s \n", err)
 		}
 	}()
+	//go func() {
+	//	settings := config.GetSettings()
+	//	application.INFO.Println("Start updater")
+	//	err := updater.Run(settings.GetUpdater())
+	//	if err != nil {
+	//		application.INFO.Println("Error started updater: ", err)
+	//		fmt.Printf("Error started updater: %s \n", err)
+	//	}
+	//}()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit

@@ -9,6 +9,11 @@ import (
 	"pmain2/internal/server"
 	"pmain2/internal/web"
 	"pmain2/pkg/logger"
+	"pmain2/pkg/version"
+)
+
+const (
+	Version version.Version = "0.0.0"
 )
 
 var (
